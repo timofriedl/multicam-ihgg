@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Images
+ach_fetch_push.png
+rec_fetch_push.png
