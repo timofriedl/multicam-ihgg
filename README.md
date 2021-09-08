@@ -1,5 +1,5 @@
 # multicam-I-HGG
-Implementation for the Bachelor's Thesis "Multi-Camera Setup in Image-Based Hindsight Goal Generation" (Timo Friedl, 2021) based on the implementation of I-HGG (James Li, 2020) and work from Aleksandar Aleksandrov.
+Implementation for the Bachelor's Thesis "Multi-Camera Setup in Image-Based Hindsight Goal Generation" (Timo Friedl, 2021) based on the implementation of [I-HGG](https://github.com/hakrrr/I-HGG) (James Li, 2020) and work from Aleksandar Aleksandrov.
 
 ## Requirements
 1. Ubuntu 20.04
