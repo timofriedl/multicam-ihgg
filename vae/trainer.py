@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from torch import Tensor, nn
 from tqdm import tqdm
 
-sys.path.append("../../multicam-I-HGG-4")
+sys.path.append("..")
 
 from vae.innervae import InnerVae
 from vae.utils import save_examples, loss_fn_weighted, loss_fn_weighted2, device

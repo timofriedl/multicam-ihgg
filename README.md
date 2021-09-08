@@ -7,7 +7,8 @@ Implementation for the Bachelor's Thesis "Multi-Camera Setup in Image-Based Hind
 3. MuJoCo (see instructions on https://github.com/openai/mujoco-py)
 4. Create a conda environment from `environment.yml`
 
-## VAE Training
+## VAE
+### Training
 Train a multicam VAE model with commands like:
 ```
 cd vae
@@ -18,20 +19,29 @@ with one of the multicam modes:
 - ec (encode-concat)
 - ece (encode-concat-encode)
 
-## VAE Decoder Evaluation
+For more information see the usage `python trainer.py -h`.
+
+### Decoder Evaluation
 Test your trained VAE model with this script:
 ```
 python decode_test.py
 ```
 
-## HGG Training
+## HGG
+### Training
 Train the agent with HGG by running
 ```
 python train.py --tag 100 --learn hgg --env=FetchPush-v1
 ```
 
-## Playing
+### Playing
 To generate a video looking at the agent solving the respective task according to his learned policy, issue the following command:
 ```
 python play_new.py --env FetchPush-v1 --play_path log/100-ddpg-FetchPush-v1-hgg/ --play_epoch latest
+```
+
+### Exporting Plot
+To plot the agent's performance on multiple training runs, execute
+```
+python plot.py FetchPush-v1
 ```
