@@ -128,6 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# PyCharm
+.idea
+
 # Images
 ach_fetch_push.png
 rec_fetch_push.png

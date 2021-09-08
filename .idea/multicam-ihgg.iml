@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/log/100-ddpg-FetchPush-v1-hgg" />
+      <excludeFolder url="file://$MODULE_DIR$/log/100-ddpg-FetchPush-v1-hgg.BAK" />
+      <excludeFolder url="file://$MODULE_DIR$/log/accs" />
+      <excludeFolder url="file://$MODULE_DIR$/log/board" />
+      <excludeFolder url="file://$MODULE_DIR$/log/ddpg-FetchPush-v1-hgg" />
+      <excludeFolder url="file://$MODULE_DIR$/log/text" />
+      <excludeFolder url="file://$MODULE_DIR$/videos/frames" />
+      <excludeFolder url="file://$MODULE_DIR$/videos/goal" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
