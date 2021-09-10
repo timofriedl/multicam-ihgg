@@ -8,8 +8,8 @@
       <excludeFolder url="file://$MODULE_DIR$/log/text" />
       <excludeFolder url="file://$MODULE_DIR$/videos/frames" />
       <excludeFolder url="file://$MODULE_DIR$/videos/goal" />
-      <excludeFolder url="file://$MODULE_DIR$/log/100-ddpg-FetchPush-v1-hgg-ec" />
-      <excludeFolder url="file://$MODULE_DIR$/log/100-ddpg-FetchPush-v1-hgg-ec-old" />
+      <excludeFolder url="file://$MODULE_DIR$/log/100-ddpg-FetchPush-v1-hgg-ec-2" />
+      <excludeFolder url="file://$MODULE_DIR$/log/100-ddpg-FetchPush-v1-hgg-ec-1" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

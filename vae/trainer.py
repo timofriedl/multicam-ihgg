@@ -123,7 +123,7 @@ class Trainer:
 if __name__ == "__main__":
     ap = ArgumentParser()
     ap.add_argument("-d", "--dataset", required=True,
-                    help="the path to the vae training data file, e.g. './data/mvae_train_data_fetch_push_front_side_top_64.npy'")
+                    help="the path to the vae training data file, e.g. './data/x.npy'")
     ap.add_argument("-n", "--model_name", required=True,
                     help="the base name of the resulting vae model file, e.g. 'front_side'")
     ap.add_argument("-m", "--mode", required=True, help="multicam vae mode: 'ce', 'ec', or 'ece'")

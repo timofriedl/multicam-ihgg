@@ -31,7 +31,7 @@ python decode_test.py
 ### Training
 Train the agent with HGG by running
 ```
-python train.py --tag 100 --learn hgg --env=FetchPush-v1
+python train.py --tag 100 --learn hgg --env=FetchPush-v1 --epoches 40 --cycles 20
 ```
 
 ### Playing

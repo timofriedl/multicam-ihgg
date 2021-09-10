@@ -11,6 +11,9 @@ from gym.envs.robotics.utils import capture_image_by_cam
 from settings import *
 from utils.gcc_utils import gcc_load_lib, c_double
 
+if generate_train_data:
+    cams = ["front", "side", "top"]
+
 
 class TrajectoryPool:
     def __init__(self, args, pool_length):
@@ -208,11 +211,24 @@ class HGGLearner:
         if generate_train_data:
             self.train_data = np.empty([dataset_size, len(cams), img_height, img_width, 3], dtype=np.uint8)
 
+    @staticmethod
+    def set_obj_pos(env, pos):
+        object_qpos = env.sim.data.get_joint_qpos('object0:joint')
+        object_qpos[:len(pos)] = pos
+        env.sim.data.set_joint_qpos('object0:joint', object_qpos)
+        env.sim.data.set_joint_qvel('object0:joint', np.zeros(6, dtype=np.float64))
+        env.sim.forward()
+
     def generateTrainData(self, timestep, i):
         if timestep % 5 == 0 and self.count < dataset_size:
             env = self.env_List[i]
             if not hasattr(env, 'viewer'):
                 env.viewer = env.sim.render_contexts[0]
+
+            if np.random.randint(7) == 0:
+                x = np.random.uniform(1.05, 1.55)
+                y = np.random.uniform(0.40, 1.10)
+                HGGLearner.set_obj_pos(env, [x, y])
 
             for c in range(len(cams)):
                 self.train_data[self.count][c] = capture_image_by_cam(env, cams[c], img_width, img_height)
@@ -334,7 +350,6 @@ class HGGLearner:
             inside_sum = 0
             for i in inside:
                 inside_sum += i
-
             # If more than stop_hgg_threshold (e.g. 0.9) of the explore goals are inside the target goal space, stop HGG
             # and continue with normal HER.
             # By default, stop_hgg_threshold is disabled (set to a value > 1)
@@ -343,8 +358,6 @@ class HGGLearner:
             if average_inside > self.stop_hgg_threshold:
                 self.stop = True
                 self.args.logger.info("Continue with normal HER")
-
         self.learn_calls += 1
-
         return goal_list if len(goal_list)>0 else None
         '''

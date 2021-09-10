@@ -4,5 +4,5 @@ img_height = 64
 dataset_size = 32768
 cams = ["front", "side"]
 base_name = "_".join(cams)
-mvae_mode = "ec"
+mvae_mode = "ece"
 latent_dim = 8

@@ -64,7 +64,7 @@ class ConcatEncodeVae(MultiCamVae):
 
         print("Converting to tensor...")
         data = images_to_tensor(concat_dataset)
-        dl = DataLoader(data, batch_size=batch_size)
+        dl = DataLoader(data, batch_size=batch_size, shuffle=True)
 
         print("Training...")
         Trainer.train_vae(dl, self.vae, model_name, epochs=epochs, bar_log=True)
@@ -107,7 +107,7 @@ class EncodeConcatVae(MultiCamVae):
 
             print("Initializing dataset...")
             data = images_to_tensor(dataset[:, c])
-            dl = DataLoader(data, batch_size=batch_size)
+            dl = DataLoader(data, batch_size=batch_size, shuffle=True)
 
             print("Training...")
             Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c),
@@ -187,7 +187,7 @@ class EncodeConcatEncodeVae(MultiCamVae):
 
             print("Initializing dataset...")
             data = images_to_tensor(dataset[:, c])
-            dl = DataLoader(data, batch_size=batch_size)
+            dl = DataLoader(data, batch_size=batch_size, shuffle=True)
 
             print("Training...")
             ep = 0 if skip_outer else epochs // (self.num_cams + 1)
@@ -200,7 +200,7 @@ class EncodeConcatEncodeVae(MultiCamVae):
             pos_min = b * batch_size
             pos_max = min(dataset.shape[0], (b + 1) * batch_size)
             data[pos_min:pos_max] = self.outer_encode_all(dataset[pos_min:pos_max])
-        dl = DataLoader(data.to(device), batch_size=batch_size)
+        dl = DataLoader(data.to(device), batch_size=batch_size, shuffle=True)
 
         print("Training...")
         ep = epochs // (self.num_cams + 1)

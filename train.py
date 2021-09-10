@@ -1,6 +1,8 @@
 import pickle
 import time
 
+from tqdm import tqdm
+
 from common import get_args, experiment_setup
 
 
@@ -31,7 +33,7 @@ def train():
 
     best_success = -1
 
-    for epoch in range(args.epoches):
+    for epoch in tqdm(range(args.epoches)):
         for cycle in range(args.cycles):
             args.logger.tabular_clear()
             args.logger.summary_clear()
