@@ -1,13 +1,11 @@
 import os
+
 import numpy as np
+from torchvision.utils import save_image
 
 from gym import utils
 from gym.envs.robotics import hand_env
 from gym.envs.robotics.utils import robot_get_obs
-
-from vae.import_vae import goal_set_reach
-from vae.import_vae import vae_hand_reach
-from torchvision.utils import save_image
 
 FINGERTIP_SITE_NAMES = [
     'robot0:S_fftip',
@@ -16,7 +14,6 @@ FINGERTIP_SITE_NAMES = [
     'robot0:S_lftip',
     'robot0:S_thtip',
 ]
-
 
 DEFAULT_INITIAL_QPOS = {
     'robot0:WRJ1': -0.16514339750464327,
@@ -61,8 +58,8 @@ def goal_distance(goal_a, goal_b):
 # edit here: dist_threshold (optional 0.025 for I-HGG)
 class HandReachEnv(hand_env.HandEnv, utils.EzPickle):
     def __init__(
-        self, distance_threshold=0.01, n_substeps=20, relative_control=False,
-        initial_qpos=DEFAULT_INITIAL_QPOS, reward_type='sparse',
+            self, distance_threshold=0.01, n_substeps=20, relative_control=False,
+            initial_qpos=DEFAULT_INITIAL_QPOS, reward_type='sparse',
     ):
         utils.EzPickle.__init__(**locals())
         self.distance_threshold = distance_threshold
@@ -75,8 +72,8 @@ class HandReachEnv(hand_env.HandEnv, utils.EzPickle):
 
     def _get_achieved_goal(self):
         return self._get_image()
-        #goal = [self.sim.data.get_site_xpos(name) for name in FINGERTIP_SITE_NAMES]
-        #return np.array(goal).flatten()
+        # goal = [self.sim.data.get_site_xpos(name) for name in FINGERTIP_SITE_NAMES]
+        # return np.array(goal).flatten()
 
     def _get_image(self):
         rgb_array = np.array(self.render(mode='rgb_array', width=84, height=84, cam_name='cam_0'))

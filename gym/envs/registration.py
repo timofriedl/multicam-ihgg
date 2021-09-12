@@ -1,5 +1,5 @@
-import re
 import importlib
+import re
 
 from gym import error, logger
 
@@ -35,7 +35,8 @@ class EnvSpec(object):
         id (str): The official environment ID
     """
 
-    def __init__(self, id, entry_point=None, reward_threshold=None, kwargs=None, nondeterministic=False, tags=None, max_episode_steps=None):
+    def __init__(self, id, entry_point=None, reward_threshold=None, kwargs=None, nondeterministic=False, tags=None,
+                 max_episode_steps=None):
         self.id = id
         # Evaluation parameters
         self.reward_threshold = reward_threshold
@@ -48,28 +49,32 @@ class EnvSpec(object):
         self.tags = tags
 
         tags['wrapper_config.TimeLimit.max_episode_steps'] = max_episode_steps
-        
+
         self.max_episode_steps = max_episode_steps
 
         # We may make some of these other parameters public if they're
         # useful.
         match = env_id_re.search(id)
         if not match:
-            raise error.Error('Attempted to register malformed environment ID: {}. (Currently all IDs must be of the form {}.)'.format(id, env_id_re.pattern))
+            raise error.Error(
+                'Attempted to register malformed environment ID: {}. (Currently all IDs must be of the form {}.)'.format(
+                    id, env_id_re.pattern))
         self._env_name = match.group(1)
         self._kwargs = {} if kwargs is None else kwargs
 
-    def make(self, **kwargs):
+    def make(self, args, **kwargs):
         """Instantiates an instance of the environment with appropriate kwargs"""
         if self.entry_point is None:
-            raise error.Error('Attempting to make deprecated env {}. (HINT: is there a newer registered version of this env?)'.format(self.id))
+            raise error.Error(
+                'Attempting to make deprecated env {}. (HINT: is there a newer registered version of this env?)'.format(
+                    self.id))
         _kwargs = self._kwargs.copy()
         _kwargs.update(kwargs)
         if callable(self.entry_point):
             env = self.entry_point(**_kwargs)
         else:
             cls = load(self.entry_point)
-            env = cls(**_kwargs)
+            env = cls(args, **_kwargs)
 
         # Make the enviroment aware of which spec it came from.
         env.unwrapped.spec = self
@@ -91,18 +96,19 @@ class EnvRegistry(object):
     def __init__(self):
         self.env_specs = {}
 
-    def make(self, path, **kwargs):
+    def make(self, path, args, **kwargs):
         if len(kwargs) > 0:
             logger.info('Making new env: %s (%s)', path, kwargs)
         else:
             logger.info('Making new env: %s', path)
         spec = self.spec(path)
-        env = spec.make(**kwargs)
+        env = spec.make(args, **kwargs)
         # We used to have people override _reset/_step rather than
         # reset/step. Set _gym_disable_underscore_compat = True on
         # your environment if you use these methods and don't want
         # compatibility code to be invoked.
-        if hasattr(env, "_reset") and hasattr(env, "_step") and not getattr(env, "_gym_disable_underscore_compat", False):
+        if hasattr(env, "_reset") and hasattr(env, "_step") and not getattr(env, "_gym_disable_underscore_compat",
+                                                                            False):
             patch_deprecated_methods(env)
         if (env.spec.max_episode_steps is not None) and not spec.tags.get('vnc'):
             from gym.wrappers.time_limit import TimeLimit
@@ -119,13 +125,17 @@ class EnvRegistry(object):
                 importlib.import_module(mod_name)
             # catch ImportError for python2.7 compatibility
             except ImportError:
-                raise error.Error('A module ({}) was specified for the environment but was not found, make sure the package is installed with `pip install` before calling `gym.make()`'.format(mod_name))
+                raise error.Error(
+                    'A module ({}) was specified for the environment but was not found, make sure the package is installed with `pip install` before calling `gym.make()`'.format(
+                        mod_name))
         else:
             id = path
 
         match = env_id_re.search(id)
         if not match:
-            raise error.Error('Attempted to look up malformed environment ID: {}. (Currently all IDs must be of the form {}.)'.format(id.encode('utf-8'), env_id_re.pattern))
+            raise error.Error(
+                'Attempted to look up malformed environment ID: {}. (Currently all IDs must be of the form {}.)'.format(
+                    id.encode('utf-8'), env_id_re.pattern))
 
         try:
             return self.env_specs[id]
@@ -145,19 +155,25 @@ class EnvRegistry(object):
             raise error.Error('Cannot re-register id: {}'.format(id))
         self.env_specs[id] = EnvSpec(id, **kwargs)
 
+
 # Have a global registry
 registry = EnvRegistry()
+
 
 def register(id, **kwargs):
     return registry.register(id, **kwargs)
 
-def make(id, **kwargs):
-    return registry.make(id, **kwargs)
+
+def make(id, args, **kwargs):
+    return registry.make(id, args, **kwargs)
+
 
 def spec(id):
     return registry.spec(id)
 
+
 warn_once = True
+
 
 def patch_deprecated_methods(env):
     """
@@ -166,14 +182,19 @@ def patch_deprecated_methods(env):
     """
     global warn_once
     if warn_once:
-        logger.warn("Environment '%s' has deprecated methods '_step' and '_reset' rather than 'step' and 'reset'. Compatibility code invoked. Set _gym_disable_underscore_compat = True to disable this behavior." % str(type(env)))
+        logger.warn(
+            "Environment '%s' has deprecated methods '_step' and '_reset' rather than 'step' and 'reset'. Compatibility code invoked. Set _gym_disable_underscore_compat = True to disable this behavior." % str(
+                type(env)))
         warn_once = False
     env.reset = env._reset
-    env.step  = env._step
-    env.seed  = env._seed
+    env.step = env._step
+    env.seed = env._seed
+
     def render(mode):
         return env._render(mode, close=False)
+
     def close():
         env._render("human", close=True)
+
     env.render = render
     env.close = close

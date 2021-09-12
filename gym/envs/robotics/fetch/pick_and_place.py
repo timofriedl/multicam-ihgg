@@ -5,8 +5,8 @@ from gym import utils
 from gym.envs.robotics import fetch_env
 import numpy as np
 
-from vae.import_vae import vae_fetch_pick_0
-from vae.import_vae import goal_set_fetch_pick_0
+from vae.import_vae import import_vae, import_goal_set
+
 # from vae.import_vae import goal_set_fetch_pick_1
 
 # edit envs/fetch/interval
@@ -34,6 +34,10 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
             initial_qpos=initial_qpos, reward_type=reward_type)
         utils.EzPickle.__init__(self)
 
+        self.mvae = import_vae(self.args.env, self.args.cams, self.args.mvae_mode, self.args.img_width,
+                               self.args.img_height)
+        self.goal_set = import_goal_set(self.args.env, self.args.cams, self.args.img_width, self.args.img_height)
+
     '''
     def _viewer_setup(self):
     body_id = self.sim.model.body_name2id('robot0:gripper_link')
@@ -48,21 +52,21 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
     def _sample_goal(self):
         # Sample randomly from goalset
         index = np.random.randint(20)
-        goal_0 = goal_set_fetch_pick_0[index]
-        #goal_1 = goal_set_fetch_pick_1[index]
-        goal_0 = vae_fetch_pick_0.format(goal_0)
-        #goal_1 = self.fetch_pick_vae_1.format(goal_1)
+        goal_0 = self.goal_set[index]
+        # goal_1 = goal_set_fetch_pick_1[index]
+        goal_0 = self.mvae.format(goal_0)
+        # goal_1 = self.fetch_pick_vae_1.format(goal_1)
         save_image(goal_0.cpu().view(-1, 3, self.img_size, self.img_size), 'videos/goal/goal.png')
-        #save_image(goal_1.cpu().view(-1, 3, self.img_size, self.img_size), 'videos/goal/goal_1.png')
+        # save_image(goal_1.cpu().view(-1, 3, self.img_size, self.img_size), 'videos/goal/goal_1.png')
 
-        x_0, y_0 = vae_fetch_pick_0.encode(goal_0)
-        #x_1, y_1 = self.fetch_pick_vae_1.encode(goal_1)
-        goal_0 = vae_fetch_pick_0.reparameterize(x_0, y_0)
-        #goal_1 = self.fetch_pick_vae_1.reparameterize(x_1, y_1)
+        x_0, y_0 = self.mvae.encode(goal_0)
+        # x_1, y_1 = self.fetch_pick_vae_1.encode(goal_1)
+        goal_0 = self.mvae.reparameterize(x_0, y_0)
+        # goal_1 = self.fetch_pick_vae_1.reparameterize(x_1, y_1)
         goal_0 = goal_0.detach().cpu().numpy()
-        #goal_1 = goal_1.detach().cpu().numpy()
+        # goal_1 = goal_1.detach().cpu().numpy()
 
-        #goal = np.concatenate((np.squeeze(goal_0), np.squeeze(goal_1)))
+        # goal = np.concatenate((np.squeeze(goal_0), np.squeeze(goal_1)))
         goal = np.squeeze(goal_0)
         # goal /= 5.1
 
@@ -70,22 +74,22 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
 
     def _get_image(self):
         rgb_array_0 = np.array(self.render(mode='rgb_array', width=84, height=84, cam_name="cam_0"))
-        #rgb_array_1 = np.array(self.render(mode='rgb_array', width=84, height=84, cam_name="cam_1"))
+        # rgb_array_1 = np.array(self.render(mode='rgb_array', width=84, height=84, cam_name="cam_1"))
         tensor_0 = vae_fetch_pick_0.format(rgb_array_0)
-        #tensor_1 = self.fetch_pick_vae_1.format(rgb_array_1)
+        # tensor_1 = self.fetch_pick_vae_1.format(rgb_array_1)
         x_0, y_0 = vae_fetch_pick_0.encode(tensor_0)
-        #x_1, y_1 = self.fetch_pick_vae_1.encode(tensor_1)
+        # x_1, y_1 = self.fetch_pick_vae_1.encode(tensor_1)
         obs_0 = vae_fetch_pick_0.reparameterize(x_0, y_0)
-        #obs_1 = self.fetch_pick_vae_1.reparameterize(x_1, y_1)
+        # obs_1 = self.fetch_pick_vae_1.reparameterize(x_1, y_1)
         obs_0 = obs_0.detach().cpu().numpy()
-        #obs_1 = obs_1.detach().cpu().numpy()
+        # obs_1 = obs_1.detach().cpu().numpy()
 
-        #obs = np.concatenate((np.squeeze(obs_0), np.squeeze(obs_1)))
+        # obs = np.concatenate((np.squeeze(obs_0), np.squeeze(obs_1)))
         obs = np.squeeze(obs_0)
         # obs /= 5.1
 
         save_image(tensor_0.cpu().view(-1, 3, 84, 84), 'fetch_pick_0.png')
-        #save_image(tensor_1.cpu().view(-1, 3, 84, 84), 'fetch_pick_1.png')
+        # save_image(tensor_1.cpu().view(-1, 3, 84, 84), 'fetch_pick_1.png')
         return obs
 
     def _generate_state(self):

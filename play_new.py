@@ -11,10 +11,10 @@ from algorithm.replay_buffer import goal_based_process
 from common import get_args
 from envs import make_env
 from gym.envs.robotics.utils import capture_image_by_cam
-from settings import cams, img_width, img_height
 
+# Video export settings
 res_y = 512
-res_x = int(res_y * img_width / img_height)
+video_path = './videos/{}_{}_{}_{}.avi'
 
 
 class Player:
@@ -48,13 +48,15 @@ class Player:
         # play policy on env
         env = self.env
 
+        res_x = int(res_y * self.args.img_width / self.args.img_height)
+
         acc_sum, obs = 0.0, []
         np.random.seed(18)
         for i in tqdm(range(self.test_rollouts)):
             obs.append(goal_based_process(env.reset()))
             # Get Goal Image & resize
-            goal_img = Image.open('videos/goal/goal.png')
-            goal_img = goal_img.resize((res_x * len(cams), res_y))
+            goal_img = Image.open('./videos/goal/goal.png')
+            goal_img = goal_img.resize((res_x * len(self.args.cams), res_y))
             goal_img.putalpha(70)
 
             for timestep in range(self.timesteps):
@@ -70,7 +72,7 @@ class Player:
                     env.viewer = env.sim.render_contexts[0]
 
                 imgs = list()
-                for cam in cams:
+                for cam in self.args.cams:
                     imgs.append(capture_image_by_cam(env, cam, res_x, res_y))
                 rgb_array = np.concatenate(imgs, axis=1)
 
@@ -84,7 +86,7 @@ class Player:
                 bg.save(path)
                 # Image.fromarray(rgb_array).show()
 
-    def make_video(self, path_to_folder, ext_end):
+    def make_video(self, path_to_folder, ext_end, path):
         image_files = [f for f in os.listdir(path_to_folder) if f.endswith(ext_end)]
         image_files.sort(key=lambda x: int(x.replace('frame_', '').replace(ext_end, '')))
         img_array = []
@@ -94,7 +96,7 @@ class Player:
             height, width, layers = img.shape
             size = (width, height)
             img_array.append(img)
-        out = cv2.VideoWriter('videos/result.avi', cv2.VideoWriter_fourcc(*'DIVX'), 4, size)
+        out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'DIVX'), 4, size)
         for i in range(len(img_array)):
             out.write(img_array[i])
         out.release()
@@ -112,9 +114,10 @@ if __name__ == "__main__":
         player = Player(args)
         print("Playing...")
         player.play()
+        path = video_path.format(args.env, args.base_name, args.mvae_mode, args.play_epoch)
         print("Making video...")
-        player.make_video('videos/frames/', '.png')
-        subprocess.call(['vlc', './videos/result.avi'])
+        player.make_video('videos/frames/', '.png', path)
+        subprocess.call(['vlc', path])
     except RuntimeError as err:
         msg = str(err)
         if 'Failed to initialize OpenGL' in msg:

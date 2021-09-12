@@ -5,8 +5,7 @@ import numpy as np
 from gym import utils
 from gym.envs.robotics import fetch_env
 from torchvision.utils import save_image
-from vae.import_vae import goal_set_fetch_slide
-from vae.import_vae import vae_fetch_slide
+from vae.import_vae import import_vae, import_goal_set
 
 # Change to normal hgg
 # edit envs/fetch/interval
@@ -33,14 +32,18 @@ class FetchSlideEnv(fetch_env.FetchEnv, utils.EzPickle):
             initial_qpos=initial_qpos, reward_type=reward_type)
         utils.EzPickle.__init__(self)
 
+        self.mvae = import_vae(self.args.env, self.args.cams, self.args.mvae_mode, self.args.img_width,
+                               self.args.img_height)
+        self.goal_set = import_goal_set(self.args.env, self.args.cams, self.args.img_width, self.args.img_height)
+
     def _sample_goal(self):
         # Sample randomly from goalset
         index = np.random.randint(5)
-        goal_0 = goal_set_fetch_slide[index]
-        goal_0 = vae_fetch_slide.format(goal_0)
+        goal_0 = self.goal_set[index]
+        goal_0 = self.mvae.format(goal_0)
         save_image(goal_0.cpu().view(-1, 3, self.img_size, self.img_size), 'videos/goal/goal.png')
-        x_0, y_0 = vae_fetch_slide.encode(goal_0)
-        goal_0 = vae_fetch_slide.reparameterize(x_0, y_0)
+        x_0, y_0 = self.mvae.encode(goal_0)
+        goal_0 = self.mvae.reparameterize(x_0, y_0)
         goal_0 = goal_0.detach().cpu().numpy()
         goal = np.squeeze(goal_0)
         # ach1 = torch.from_numpy(goal_0).float().to('cuda')
@@ -50,9 +53,9 @@ class FetchSlideEnv(fetch_env.FetchEnv, utils.EzPickle):
 
     def _get_image(self):
         rgb_array_0 = np.array(self.render(mode='rgb_array', width=84, height=84, cam_name="cam_0"))
-        tensor_0 = vae_fetch_slide.format(rgb_array_0)
-        x_0, y_0 = vae_fetch_slide.encode(tensor_0)
-        obs_0 = vae_fetch_slide.reparameterize(x_0, y_0)
+        tensor_0 = self.mvae.format(rgb_array_0)
+        x_0, y_0 = self.mvae.encode(tensor_0)
+        obs_0 = self.mvae.reparameterize(x_0, y_0)
         obs_0 = obs_0.detach().cpu().numpy()
         obs = np.squeeze(obs_0)
         # save_image(tensor_0.cpu().view(-1, 3, 84, 84), 'fetch_slide_0.png')

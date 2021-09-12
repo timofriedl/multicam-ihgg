@@ -4,13 +4,10 @@ from matplotlib import pyplot as plt
 from matplotlib.widgets import Slider, Button
 from tqdm import tqdm
 
-from settings import latent_dim, cams
-from vae.import_vae import vae_fetch_reach as vae
+from common import get_args
+from vae.import_vae import import_vae
 from vae.multicamvae import EncodeConcatVae
 from vae.utils import tensor_to_np, device
-
-if isinstance(vae, EncodeConcatVae):
-    latent_dim *= len(cams)
 
 
 def update(val):
@@ -35,6 +32,14 @@ def rand(event):
 
 
 if __name__ == "__main__":
+    args = get_args()
+
+    vae = import_vae(args.env, args.cams, args.mvae_mode, args.img_width, args.img_height)
+
+    latent_dim = vae.latent_dim
+    if isinstance(vae, EncodeConcatVae):
+        latent_dim *= len(args.cams)
+
     print("Normalizing latent values...")
     min = torch.tensor([-1E10]).repeat(latent_dim).reshape(-1, 1)
     max = torch.tensor([1E10]).repeat(latent_dim).reshape(-1, 1)

@@ -109,7 +109,6 @@ def capture_image(env, azimuth, eleviation, distance, lookat_0, lookat_1, lookat
     cam.lookat[2] = lookat_2
     rgb_array = np.array(env.sim.render(mode='offscreen', width=width, height=height))
 
-    # TODO REMOVE
     if np.all((rgb_array == 0)):
         return capture_image(env, azimuth, eleviation, distance, lookat_0, lookat_1, lookat_2, width, height)
 

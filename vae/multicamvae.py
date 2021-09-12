@@ -70,9 +70,10 @@ class ConcatEncodeVae(MultiCamVae):
         Trainer.train_vae(dl, self.vae, model_name, epochs=epochs, bar_log=True)
 
     @staticmethod
-    def load(base_path: str, num_cams: int, width: int, height: int, latent_dim: int):
-        mvae = ConcatEncodeVae(num_cams, width, height, latent_dim)
-        mvae.vae = torch.load(base_path + ".pt")
+    def load(base_path: str, num_cams: int):
+        coordbdvae = torch.load(base_path + ".pt")
+        mvae = ConcatEncodeVae(num_cams, coordbdvae.width // num_cams, coordbdvae.height, coordbdvae.latent_dim)
+        mvae.vae = coordbdvae
         return mvae
 
 
@@ -114,12 +115,13 @@ class EncodeConcatVae(MultiCamVae):
                               epochs=epochs // self.num_cams, bar_log=True)
 
     @staticmethod
-    def load(base_path: str, num_cams: int, width: int, height: int, latent_dim: int):
-        mvae = EncodeConcatVae(num_cams, width, height, latent_dim)
-        mvae.vaes = list()
+    def load(base_path: str, num_cams: int):
+        vaes = list()
         for i in range(num_cams):
-            mvae.vaes.append(torch.load("{}_{}.pt".format(base_path, i)))
+            vaes.append(torch.load("{}_{}.pt".format(base_path, i)))
 
+        mvae = EncodeConcatVae(num_cams, vaes[0].width, vaes[0].height, vaes[0].latent_dim)
+        mvae.vaes = vaes
         return mvae
 
 
@@ -207,11 +209,14 @@ class EncodeConcatEncodeVae(MultiCamVae):
         Trainer.train_vae(dl, self.inner_vae, model_name="{}_inner".format(model_name), epochs=ep, bar_log=True)
 
     @staticmethod
-    def load(base_path: str, num_cams: int, width: int, height: int, latent_dim: int):
-        mvae = EncodeConcatEncodeVae(num_cams, width, height, latent_dim)
-        mvae.vaes = list()
+    def load(base_path: str, num_cams: int):
+        vaes = list()
         for i in range(num_cams):
-            mvae.vaes.append(torch.load("{}_{}.pt".format(base_path, i)))
-        mvae.inner_vae = torch.load("{}_inner.pt".format(base_path))
+            vaes.append(torch.load("{}_{}.pt".format(base_path, i)))
 
+        inner_vae = torch.load("{}_inner.pt".format(base_path))
+
+        mvae = EncodeConcatEncodeVae(num_cams, vaes[0].width, vaes[0].height, vaes[0].latent_dim)
+        mvae.vaes = vaes
+        mvae.inner_vae = inner_vae
         return mvae

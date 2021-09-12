@@ -2,12 +2,6 @@ import os
 
 import numpy as np
 from torchvision.utils import save_image
-from vae.import_vae import goal_set_block
-from vae.import_vae import goal_set_egg
-from vae.import_vae import goal_set_pen
-from vae.import_vae import vae_block
-from vae.import_vae import vae_egg
-from vae.import_vae import vae_pen
 
 from gym import utils
 from gym import error

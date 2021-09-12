@@ -8,11 +8,11 @@ from envs import make_env
 from envs.distance_graph import DistanceGraph
 from envs.utils import goal_distance
 from gym.envs.robotics.utils import capture_image_by_cam
-from settings import *
 from utils.gcc_utils import gcc_load_lib, c_double
 
-if generate_train_data:
-    cams = ["front", "side", "top"]
+# Training data settings
+generate_train_data = False
+dataset_size = 32768
 
 
 class TrajectoryPool:
@@ -209,7 +209,9 @@ class HGGLearner:
 
         self.count = 0
         if generate_train_data:
-            self.train_data = np.empty([dataset_size, len(cams), img_height, img_width, 3], dtype=np.uint8)
+            self.train_data = np.empty(
+                [dataset_size, len(self.args.cams), self.args.img_height, self.args.img_width, 3],
+                dtype=np.uint8)
 
     @staticmethod
     def set_obj_pos(env, pos):
@@ -230,12 +232,12 @@ class HGGLearner:
                 y = np.random.uniform(0.40, 1.10)
                 HGGLearner.set_obj_pos(env, [x, y])
 
-            for c in range(len(cams)):
-                self.train_data[self.count][c] = capture_image_by_cam(env, cams[c], img_width, img_height)
+            for c in range(len(self.args.cams)):
+                self.train_data[self.count][c] = capture_image_by_cam(env, self.args.cams[c], self.args.img_width, self.args.img_height)
 
             self.count += 1
             if self.count % 100 == 0:
-                print('Captured {} situations from {} perspectives'.format(self.count, len(cams)))
+                print('Captured {} situations from {} perspectives'.format(self.count, len(self.args.cams)))
 
         if self.count == dataset_size:
             np.random.shuffle(self.train_data)

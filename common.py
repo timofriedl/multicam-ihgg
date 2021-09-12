@@ -6,7 +6,6 @@ from envs import make_env, clip_return_range, Robotics_envs_id
 from learner import create_learner, learner_collection
 from test import Tester
 from utils.os_utils import get_arg_parser, get_logger, str2bool
-from settings import mvae_mode, cams
 
 
 def get_args():
@@ -79,15 +78,25 @@ def get_args():
 
     parser.add_argument('--save_acc', help='save successful rate', type=str2bool, default=True)
 
+    parser.add_argument('--img_width', help='width of each single image in px', type=int, default=64)
+    parser.add_argument('--img_height', help='height of each single image in px', type=int, default=64)
+    parser.add_argument('--mvae_mode', help='multicam vae encoding mode', type=str, required=True,
+                        choices=['ec', 'ce', 'ece'])
+    parser.add_argument('--cams', help='the names of the camera perspectives, separated with an underscore', type=str,
+                        required=True)
+
     args = parser.parse_args()
     args.num_vertices = [args.n_x, args.n_y, args.n_z]
     args.goal_based = (args.env in Robotics_envs_id)
     args.clip_return_l, args.clip_return_r = clip_return_range(args)
 
-    if len(cams) == 1:
-        logger_name = args.env + '-single-' + cams[0]
+    args.base_name = args.cams
+    args.cams = args.base_name.split('_')
+
+    if len(args.cams) == 1:
+        logger_name = args.env + '-single-' + args.cams[0]
     else:
-        logger_name = args.env + '-' + args.learn + '-' + mvae_mode
+        logger_name = args.env + '-' + args.learn + '-' + args.mvae_mode
 
     if args.tag != '': logger_name = args.tag + '-' + logger_name
     if args.graph:

@@ -8,7 +8,8 @@ from utils.os_utils import remove_color
 class VanillaGoalEnv():
     def __init__(self, args):
         self.args = args
-        self.env = gym.make(args.env)
+        self.env = gym.make(args.env, args)
+
         self.np_random = self.env.env.np_random
 
         self.distance_threshold = self.env.env.distance_threshold

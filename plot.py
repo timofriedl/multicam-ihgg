@@ -66,13 +66,20 @@ if __name__ == "__main__":
     parser.add_argument('--naming', type=int, default=0)
     parser.add_argument('--e_per_c', type=int, default=50)
     parser.add_argument('--save_path', type=str, default="./plot.png")
+    parser.add_argument('--mvae_mode', help='multicam vae encoding mode', type=str, required=True,
+                        choices=['ec', 'ce', 'ece'])
+    parser.add_argument('--cams', help='the names of the camera perspectives, separated with an underscore', type=str,
+                        required=True)
     args = parser.parse_args()
     env_id = args.env_id
+
+    args.base_name = args.cams
+    args.cams = args.base_name.split('_')
 
     # Load all data.
     data = {}
     paths = list(filter(lambda p: env_id in p, [os.path.abspath(os.path.join(path, '..')) for path in
-             glob2.glob(os.path.join(args.dir, '**', 'progress.csv'))]))
+                                                glob2.glob(os.path.join(args.dir, '**', 'progress.csv'))]))
     print(paths)
     location = 4
     for curr_path in paths:
@@ -82,7 +89,7 @@ if __name__ == "__main__":
         if not args.dir in curr_path:
             continue
         """
-        clean_path = curr_path.replace(env_id, '')
+        clean_path = curr_path.replace('-' + env_id + '-hgg', args.base_name.replace('_', '-'))
         clean_path = os.path.basename(os.path.normpath(clean_path))
         clean_path = ''.join([i for i in clean_path if not i.isdigit()])
         # divide path into run (number in the beginning) and config (information on configuration, included in the path name)
@@ -186,7 +193,7 @@ if __name__ == "__main__":
     else:
         configs = sorted(data.keys())
 
-    configs = data.keys() # ['HER', 'HGG', 'I-HGG']
+    configs = data.keys()  # ['HER', 'HGG', 'I-HGG']
     for config in configs:
         print("Config: {}".format(config))
         # merge curves from runs of one config
@@ -202,7 +209,9 @@ if __name__ == "__main__":
     plt.xlabel('Iteration')
     plt.ylabel('Median Success Rate')
     plt.legend(loc=4)
-    plt.savefig(os.path.join(args.dir, 'fig_{}.pdf'.format(env_id)), format='pdf')
+    plt.savefig(os.path.join(args.dir, 'fig_{}_{}_{}.pdf'.format(env_id, args.base_name, args.mvae_mode)), format='pdf')
+    """
     if args.save_path:
         plt.savefig(args.save_path)
         print("Saved to {}".format(args.save_path))
+    """
