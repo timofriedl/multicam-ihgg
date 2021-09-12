@@ -19,6 +19,7 @@ with one of the multicam modes:
 - ec (encode-concat)
 - ece (encode-concat-encode)
 
+To train with single-cam mode choose `-m ec -c 1`.\
 For more information see the usage `python trainer.py -h`.
 
 ### Decoder Evaluation
@@ -37,7 +38,7 @@ python train.py --tag 100 --learn hgg --env=FetchPush-v1 --epoches 40 --cycles 2
 ### Playing
 To generate a video looking at the agent solving the respective task according to his learned policy, issue the following command:
 ```
-python play_new.py --env FetchPush-v1 --play_path log/100-ddpg-FetchPush-v1-hgg/ --play_epoch latest
+python play_new.py --env FetchPush-v1 --play_path log/100-FetchPush-v1-hgg-ec/ --play_epoch latest
 ```
 
 ### Exporting Plot

@@ -225,7 +225,7 @@ class HGGLearner:
             if not hasattr(env, 'viewer'):
                 env.viewer = env.sim.render_contexts[0]
 
-            if np.random.randint(7) == 0:
+            if 'FetchPush' in env.args.env and np.random.randint(7) == 0:
                 x = np.random.uniform(1.05, 1.55)
                 y = np.random.uniform(0.40, 1.10)
                 HGGLearner.set_obj_pos(env, [x, y])
@@ -239,7 +239,7 @@ class HGGLearner:
 
         if self.count == dataset_size:
             np.random.shuffle(self.train_data)
-            np.save('data/TODO_RENAME_generated_vae_train_data', self.train_data)
+            np.save('./vae/data/mvae_train_data_NEW_TODO_RENAME.npy', self.train_data)
             print('Finished!')
             self.count += 1
             sys.exit()

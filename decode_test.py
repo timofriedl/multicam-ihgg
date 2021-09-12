@@ -5,7 +5,7 @@ from matplotlib.widgets import Slider, Button
 from tqdm import tqdm
 
 from settings import latent_dim, cams
-from vae.import_vae import vae_fetch_push as vae
+from vae.import_vae import vae_fetch_reach as vae
 from vae.multicamvae import EncodeConcatVae
 from vae.utils import tensor_to_np, device
 

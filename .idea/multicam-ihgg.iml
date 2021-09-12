@@ -11,7 +11,7 @@
       <excludeFolder url="file://$MODULE_DIR$/log/100-ddpg-FetchPush-v1-hgg-ec-2" />
       <excludeFolder url="file://$MODULE_DIR$/log/100-ddpg-FetchPush-v1-hgg-ec-1" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Python 3.7 (multicam-I-HGG-4)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

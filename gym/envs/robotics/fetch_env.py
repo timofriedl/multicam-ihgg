@@ -213,5 +213,7 @@ class FetchEnv(robot_env.RobotEnv):
         if self.has_object:
             self.height_offset = self.sim.data.get_site_xpos('object0')[2]
 
+    """
     def render(self, mode='human', width=500, height=500, cam_name='cam_0'):
         return super(FetchEnv, self).render(mode, width, height, cam_name)
+    """

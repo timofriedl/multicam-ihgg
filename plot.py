@@ -4,7 +4,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns;
+import seaborn as sns
 
 sns.set()
 import glob2
@@ -71,8 +71,9 @@ if __name__ == "__main__":
 
     # Load all data.
     data = {}
-    paths = [os.path.abspath(os.path.join(path, '..')) for path in
-             glob2.glob(os.path.join(args.dir, '**', 'progress.csv'))]
+    paths = list(filter(lambda p: env_id in p, [os.path.abspath(os.path.join(path, '..')) for path in
+             glob2.glob(os.path.join(args.dir, '**', 'progress.csv'))]))
+    print(paths)
     location = 4
     for curr_path in paths:
         if not os.path.isdir(curr_path):

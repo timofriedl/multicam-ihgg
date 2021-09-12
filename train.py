@@ -33,54 +33,57 @@ def train():
 
     best_success = -1
 
-    for epoch in tqdm(range(args.epoches)):
-        for cycle in range(args.cycles):
-            args.logger.tabular_clear()
-            args.logger.summary_clear()
-            start_time = time.time()
+    for epoch_cycle in tqdm(range(args.epoches * args.cycles)):
+        epoch = epoch_cycle // args.cycles
+        cycle = epoch_cycle % args.cycles
 
-            # Learn
-            goal_list = learner.learn(args, env, env_test, agent, buffer, write_goals=args.show_goals)
+        args.logger.tabular_clear()
+        args.logger.summary_clear()
+        start_time = time.time()
 
-            # Log learning progresss
-            tester.cycle_summary()
-            args.logger.add_record('Epoch', str(epoch) + '/' + str(args.epoches))
-            args.logger.add_record('Cycle', str(cycle) + '/' + str(args.cycles))
-            args.logger.add_record('Episodes', buffer.counter)
-            args.logger.add_record('Timesteps', buffer.steps_counter)
-            args.logger.add_record('TimeCost(sec)', time.time() - start_time)
+        # Learn
+        goal_list = learner.learn(args, env, env_test, agent, buffer, write_goals=args.show_goals)
 
-            # Save learning progress to progress0.csv file
-            args.logger.save_csv()
+        # Log learning progresss
+        tester.cycle_summary()
+        args.logger.add_record('Epoch', str(epoch) + '/' + str(args.epoches))
+        args.logger.add_record('Cycle', str(cycle) + '/' + str(args.cycles))
+        args.logger.add_record('Episodes', buffer.counter)
+        args.logger.add_record('Timesteps', buffer.steps_counter)
+        args.logger.add_record('TimeCost(sec)', time.time() - start_time)
 
-            args.logger.tabular_show(args.tag)
-            args.logger.summary_show(buffer.counter)
+        # Save learning progress to progress0.csv file
+        args.logger.save_csv()
 
-            # Save latest policy
-            policy_file = args.logger.my_log_dir + "saved_policy-latest"
+        args.logger.tabular_show(args.tag)
+        args.logger.summary_show(buffer.counter)
+
+        # Save latest policy
+        policy_file = args.logger.my_log_dir + "saved_policy-latest"
+        agent.saver.save(agent.sess, policy_file)
+
+        # Save policy if new best_success was reached
+        if args.logger.values["Success"] > best_success:
+            best_success = args.logger.values["Success"]
+            policy_file = args.logger.my_log_dir + "saved_policy-best"
             agent.saver.save(agent.sess, policy_file)
+            args.logger.info("Saved as best policy to {}!".format(args.logger.my_log_dir))
 
-            # Save policy if new best_success was reached
-            if args.logger.values["Success"] > best_success:
-                best_success = args.logger.values["Success"]
-                policy_file = args.logger.my_log_dir + "saved_policy-best"
-                agent.saver.save(agent.sess, policy_file)
-                args.logger.info("Saved as best policy to {}!".format(args.logger.my_log_dir))
+        if cycle == args.cycles - 1:
+            # Save periodic policy every epoch
+            policy_file = args.logger.my_log_dir + "saved_policy"
+            agent.saver.save(agent.sess, policy_file, global_step=epoch)
+            args.logger.info("Saved periodic policy to {}!".format(args.logger.my_log_dir))
 
-        # Save periodic policy every epoch
-        policy_file = args.logger.my_log_dir + "saved_policy"
-        agent.saver.save(agent.sess, policy_file, global_step=epoch)
-        args.logger.info("Saved periodic policy to {}!".format(args.logger.my_log_dir))
+            # Plot current goal distribution for visualization (G-HGG only)
+            if args.learn == 'hgg' and goal_list and args.show_goals != 0:
+                name = "{}goals_{}".format(args.logger.my_log_dir, epoch)
+                if args.graph:
+                    learner.sampler.graph.plot_graph(goals=goal_list, save_path=name)
+                with open('{}.pkl'.format(name), 'wb') as file:
+                    pickle.dump(goal_list, file)
 
-        # Plot current goal distribution for visualization (G-HGG only)
-        if args.learn == 'hgg' and goal_list and args.show_goals != 0:
-            name = "{}goals_{}".format(args.logger.my_log_dir, epoch)
-            if args.graph:
-                learner.sampler.graph.plot_graph(goals=goal_list, save_path=name)
-            with open('{}.pkl'.format(name), 'wb') as file:
-                pickle.dump(goal_list, file)
-
-        tester.epoch_summary()
+            tester.epoch_summary()
 
     tester.final_summary()
 

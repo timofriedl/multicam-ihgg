@@ -43,8 +43,8 @@ class Trajectory:
             # For Fetch_Reach, Fetch_Push, Fetch_Slide, where height is the same
 
             height = np.load('data/Fetch_Env/height.npy')
-            # For ep = 50
-            # height = height[:, : 51]
+            if obj.shape[1] == 51:
+                height = height[:, : 51]
 
             # For PickAndPlace, since height matters
             # height = obj[:, :, 2]
