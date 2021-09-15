@@ -26,6 +26,7 @@ def load_multicam_vae(env, cams, mvae_mode, img_width, img_height):
     env_lower = "_".join(env_parts).lower()
     size = str(img_width) if img_width == img_height else "{}_{}".format(img_width, img_height)
     base_path = "./vae/models/mvae_model_{}_{}_{}_{}".format(env_lower, "_".join(cams), size, mvae_mode)
+    print("Loading VAE from '{}'".format(base_path))
 
     try:
         if mvae_mode == "ce":

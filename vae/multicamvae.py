@@ -33,7 +33,7 @@ class MultiCamVae:
         return self.decode(self.encode(images))
 
     @abc.abstractmethod
-    def train(self, dataset: np.ndarray, model_name: str, batch_size: int, epochs: int) -> None:
+    def train(self, dataset: np.ndarray, model_name, batch_size, epochs, lefe, lefe_dataset):
         return
 
     @staticmethod
@@ -56,7 +56,7 @@ class ConcatEncodeVae(MultiCamVae):
         concat_image = tensor_to_image(self.vae.decode(tensor_wrap(latent)))
         return np.array(np.hsplit(concat_image, self.num_cams))
 
-    def train(self, dataset: np.ndarray, model_name: str, batch_size: int, epochs: int) -> None:
+    def train(self, dataset: np.ndarray, model_name, batch_size, epochs):
         print("Concatenating images...")
         concat_dataset = np.empty([dataset.shape[0], self.vae.height, self.vae.width, 3])
         for i in tqdm(range(dataset.shape[0])):
@@ -102,16 +102,20 @@ class EncodeConcatVae(MultiCamVae):
 
         return images
 
-    def train(self, dataset: np.ndarray, model_name: str, batch_size: int, epochs: int) -> None:
+    def train(self, dataset: np.ndarray, model_name, batch_size, epochs, lefe=False, lefe_dataset=None):
         for c in range(self.num_cams):
             print("VAE %d/%d:" % (c + 1, self.num_cams))
 
             print("Initializing dataset...")
             data = images_to_tensor(dataset[:, c])
-            dl = DataLoader(data, batch_size=batch_size, shuffle=True)
+            dl = DataLoader(data, batch_size=batch_size, shuffle=not lefe)
+
+            if lefe:
+                lefe_data = images_to_tensor(lefe_dataset[:, c])
+                lefe_dl = DataLoader(lefe_data, batch_size=batch_size, shuffle=not lefe)
 
             print("Training...")
-            Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c),
+            Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c), goal_dataset=lefe_dl,
                               epochs=epochs // self.num_cams, bar_log=True)
 
     @staticmethod
@@ -183,17 +187,22 @@ class EncodeConcatEncodeVae(MultiCamVae):
     def decode(self, latent: Tensor) -> np.ndarray:
         return self.outer_decode(self.inner_decode(latent))
 
-    def train(self, dataset: np.ndarray, model_name: str, batch_size: int, epochs: int, skip_outer=False) -> None:
+    def train(self, dataset: np.ndarray, model_name, batch_size, epochs, lefe, lefe_dataset, skip_outer=False):
         for c in range(self.num_cams):
             print("VAE %d/%d:" % (c + 1, self.num_cams + 1))
 
             print("Initializing dataset...")
             data = images_to_tensor(dataset[:, c])
-            dl = DataLoader(data, batch_size=batch_size, shuffle=True)
+            dl = DataLoader(data, batch_size=batch_size, shuffle=not lefe)
+
+            if lefe:
+                lefe_data = images_to_tensor(lefe_dataset[:, c])
+                lefe_dl = DataLoader(lefe_data, batch_size=batch_size, shuffle=not lefe)
 
             print("Training...")
             ep = 0 if skip_outer else epochs // (self.num_cams + 1)
-            Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c), epochs=ep, bar_log=True)
+            Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c), epochs=ep, bar_log=True,
+                              goal_dataset=lefe_dl)
 
         print("Inner VAE:")
         print("Initializing dataset...")

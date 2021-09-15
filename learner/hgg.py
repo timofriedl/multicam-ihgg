@@ -1,5 +1,6 @@
 import copy
 import sys
+from datetime import datetime
 
 import numpy as np
 
@@ -11,8 +12,20 @@ from gym.envs.robotics.utils import capture_image_by_cam
 from utils.gcc_utils import gcc_load_lib, c_double
 
 # Training data settings
-generate_train_data = False
-dataset_size = 32768
+generate_train_data = True
+dataset_size = 32  # 16384
+use_lefe = True
+lefe_duration = 32  # 1024
+
+if use_lefe:
+    print("Generating random positions...")
+    obj_xs = np.random.uniform(1.05, 1.55, dataset_size)
+    obj_ys = np.random.uniform(0.40, 1.10, dataset_size)
+    obj_zs = np.random.uniform(0.40, 0.60, dataset_size)
+    obj_pos = np.array(list(zip(obj_xs, obj_ys, obj_zs)))
+    del obj_xs
+    del obj_ys
+    del obj_zs
 
 
 class TrajectoryPool:
@@ -207,11 +220,19 @@ class HGGLearner:
         self.stop = False
         self.learn_calls = 0
 
+        self.cams = ["front", "side", "top"] if generate_train_data else self.args.cams
+
         self.count = 0
         if generate_train_data:
             self.train_data = np.empty(
-                [dataset_size, len(self.args.cams), self.args.img_height, self.args.img_width, 3],
+                [dataset_size, len(self.cams), self.args.img_height, self.args.img_width, 3],
                 dtype=np.uint8)
+
+            if use_lefe:
+                self.lefe_data = np.empty(self.train_data.shape, dtype=np.uint32)
+
+                if "FetchPush" in args.env:
+                    obj_pos = obj_pos[:, :2]
 
     @staticmethod
     def set_obj_pos(env, pos):
@@ -221,7 +242,7 @@ class HGGLearner:
         env.sim.data.set_joint_qvel('object0:joint', np.zeros(6, dtype=np.float64))
         env.sim.forward()
 
-    def generateTrainData(self, timestep, i):
+    def generate_train_data(self, timestep, i):
         if timestep % 5 == 0 and self.count < dataset_size:
             env = self.env_List[i]
             if not hasattr(env, 'viewer'):
@@ -232,12 +253,14 @@ class HGGLearner:
                 y = np.random.uniform(0.40, 1.10)
                 HGGLearner.set_obj_pos(env, [x, y])
 
-            for c in range(len(self.args.cams)):
-                self.train_data[self.count][c] = capture_image_by_cam(env, self.args.cams[c], self.args.img_width, self.args.img_height)
+            for c in range(len(self.cams)):
+                self.train_data[self.count][c] = capture_image_by_cam(env, self.cams[c], self.args.img_width,
+                                                                      self.args.img_height)
+
+            if self.count % 100 == 0:
+                print('Captured {} situations from {} perspectives'.format(self.count, len(self.cams)))
 
             self.count += 1
-            if self.count % 100 == 0:
-                print('Captured {} situations from {} perspectives'.format(self.count, len(self.args.cams)))
 
         if self.count == dataset_size:
             np.random.shuffle(self.train_data)
@@ -245,6 +268,42 @@ class HGGLearner:
             print('Finished!')
             self.count += 1
             sys.exit()
+
+    def generate_train_data_lefe(self, timestep, i):
+        env = self.env_List[i]
+        if not hasattr(env, 'viewer'):
+            env.viewer = env.sim.render_contexts[0]
+
+        if timestep % 5 == 0 and self.count < dataset_size:
+            imgs = np.empty(self.train_data.shape[1:], dtype=np.uint8)
+
+            for pos in range(self.count - lefe_duration, self.count):
+                HGGLearner.set_obj_pos(env, obj_pos[pos])
+
+                for c in range(len(self.cams)):
+                    imgs[c] = capture_image_by_cam(env, self.cams[c], self.args.img_width, self.args.img_height)
+
+                self.lefe_data[pos] += imgs.astype(np.uint32)
+
+            self.train_data[self.count - 1] = imgs
+
+            self.count += 1
+            print('Captured {} situations from {} perspectives'.format(self.count, len(self.cams)))
+
+            if self.count == dataset_size:
+                self.lefe_data = (self.lefe_data / lefe_duration).astype(np.uint8)
+
+                permut = np.random.permutation(dataset_size)
+                self.train_data = self.train_data[permut]
+                self.lefe_data = self.lefe_data[permut]
+
+                now = datetime.now().time()
+                np.save('./vae/data/mvae_train_data_NEW_TODO_RENAME_{}.npy'.format(now), self.train_data)
+                np.save('./vae/data/mvae_lefe_data_NEW_TODO_RENAME_{}.npy'.format(now), self.lefe_data)
+
+                print('Finished!')
+                self.count += 1
+                sys.exit()
 
     def learn(self, args, env, env_test, agent, buffer, write_goals=0):
         # Actual learning cycle takes place here!
@@ -309,7 +368,10 @@ class HGGLearner:
                 if done:
                     break
                 if generate_train_data:
-                    self.generateTrainData(timestep, i)
+                    if use_lefe:
+                        self.generate_train_data_lefe(timestep, i)
+                    else:
+                        self.generate_train_data(timestep, i)
 
             achieved_trajectories.append(np.array(trajectory))
             achieved_init_states.append(init_state)
@@ -335,7 +397,7 @@ class HGGLearner:
 
         # unless in first call:
         # Check which of the explore goals are inside the target goal space
-        # target goal space is represented by a sample of test_goals directly generated from the environemnt
+        # target goal space is represented by a sample of test_goals directly generated from the environment
         # an explore goal is considered inside the target goal space, if it is closer than the distance_threshold to one of the test goals
         # (i.e. would yield a non-negative reward if that test goal was to be achieved)
         '''

@@ -49,7 +49,9 @@ class Trainer:
         plt.close(fig)
 
     @staticmethod
-    def train_vae(dataset, model, model_name, model_folder="./models/", alpha=10., beta=1., bar_log=False, log_every=10,
+    def train_vae(dataset, model, model_name, goal_dataset=None, model_folder="./models/", alpha=10., beta=1.,
+                  bar_log=False,
+                  log_every=10,
                   load=True, save_images_every=1000, save_every=50, start_epoch=0, epochs=500, entanglement_data=None):
         if not bar_log:
             print(f'Device: {device}')
@@ -60,6 +62,9 @@ class Trainer:
             except FileNotFoundError:
                 Trainer.create_images_folder()
                 print("Found no model to load. Created new.")
+
+        if goal_dataset == None:
+            goal_dataset = dataset
 
         model = model.to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
@@ -74,14 +79,14 @@ class Trainer:
             train_mse = 0
             train_kl = 0
 
-            for i, d in enumerate(dataset):
+            for i, (d, goal_batch) in enumerate(zip(dataset, goal_dataset)):
                 optimizer.zero_grad()
 
                 out, mu, logvar = model(d)
                 if model_name == 'bdvae_partial_reconstruction' or model_name == 'bdvae_full_reconstruction':
-                    mse_loss, kl, loss = loss_fn_weighted(d, out, mu, logvar, alpha=alpha, beta=beta)
+                    mse_loss, kl, loss = loss_fn_weighted(goal_batch, out, mu, logvar, alpha=alpha, beta=beta)
                 else:
-                    mse_loss, kl, loss = loss_fn_weighted2(d, out, mu, logvar, alpha=alpha, beta=beta)
+                    mse_loss, kl, loss = loss_fn_weighted2(goal_batch, out, mu, logvar, alpha=alpha, beta=beta)
 
                 loss.backward(retain_graph=isinstance(model, InnerVae))
                 optimizer.step()
@@ -105,7 +110,7 @@ class Trainer:
                     train_kl = 0
 
                 if i % save_images_every == 0:
-                    err_imgs = torch.abs(d.cpu() - out.cpu().detach())
+                    err_imgs = torch.abs(goal_batch.cpu() - out.cpu().detach())
                     Trainer.save_img_examples(d.cpu(), f'original', epoch, i)
                     Trainer.save_img_examples(out.cpu().detach(), f'reconstruction', epoch, i)
                     Trainer.save_img_examples(err_imgs, f'error', epoch, i)
@@ -131,6 +136,8 @@ if __name__ == "__main__":
     ap.add_argument("-c", "--num_cams", required=True, help="number of cameras in the training dataset", type=int)
     ap.add_argument("-l", "--latent_dim", required=True, help="number of latent dimensions", type=int)
     ap.add_argument("-b", "--batch_size", required=False, help="the batch size", type=int, default=128)
+    ap.add_argument("-f", "--lefe", required=False, help="use long exposure feature extraction vae mode", type=bool,
+                    default=False)
     ap.add_argument("-r", "--dataset_limit", required=False, help="number of dataset entries to use", type=int,
                     default=-1)
     ap.add_argument("-s", "--skip_outer", required=False, help="skip outer layer training for ece mode", type=bool,
@@ -140,9 +147,12 @@ if __name__ == "__main__":
     mode = args["mode"]
     num_cams = args["num_cams"]
     latent_dim = args["latent_dim"]
+    lefe = args["lefe"]
 
     print("Loading dataset...")
     dataset = np.load(args["dataset"])[:, 0:num_cams]
+    if lefe:
+        lefe_dataset = np.load(args["dataset"].replace("lefe_train_data", "lefe_data"))[:, 0:num_cams]
 
     width = dataset.shape[3]
     height = dataset.shape[2]
@@ -173,12 +183,19 @@ if __name__ == "__main__":
     for h in range(1) if limit == -1 else tqdm(range(dataset.shape[0] * fac // limit)):
         if limit == -1:
             data = dataset
+            lefe_data = lefe_dataset
         else:
-            np.random.shuffle(dataset)
+            permut = np.random.permutation(dataset.shape[0])
+            dataset = dataset[permut]
+            lefe_dataset = lefe_dataset[permut]
+
             data = dataset[0:limit]
+            lefe_data = lefe_dataset[0:limit]
+
             ep = args["epochs"] // fac
 
         if args["skip_outer"]:
-            vae.train(data, model_name=name, batch_size=bat, epochs=ep, skip_outer=True)
+            vae.train(data, model_name=name, batch_size=bat, epochs=ep, lefe=lefe, lefe_dataset=lefe_data,
+                      skip_outer=True)
         else:
-            vae.train(data, model_name=name, batch_size=bat, epochs=ep)
+            vae.train(data, model_name=name, batch_size=bat, epochs=ep, lefe=lefe, lefe_dataset=lefe_data)

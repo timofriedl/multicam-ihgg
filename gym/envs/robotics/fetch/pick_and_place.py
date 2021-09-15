@@ -1,10 +1,13 @@
 import os
 import random
+
+import numpy as np
 from torchvision.utils import save_image
+
+import vae.utils
 from gym import utils
 from gym.envs.robotics import fetch_env
-import numpy as np
-
+from gym.envs.robotics.utils import capture_image_by_cam
 from vae.import_vae import import_vae, import_goal_set
 
 # from vae.import_vae import goal_set_fetch_pick_1
@@ -20,23 +23,25 @@ MODEL_XML_PATH = os.path.join('fetch', 'pick_and_place.xml')
 
 
 class FetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
-    def __init__(self, reward_type='sparse'):
+    def __init__(self, args, reward_type='sparse'):
         initial_qpos = {
             'robot0:slide0': 0.405,
             'robot0:slide1': 0.48,
             'robot0:slide2': 0.0,
             'object0:joint': [1.25, 0.53, 0.4, 1., 0., 0., 0.],
         }
+
+        self.args = args
+        self.mvae = import_vae(self.args.env, self.args.cams, self.args.mvae_mode, self.args.img_width,
+                               self.args.img_height)
+        self.goal_set = import_goal_set(self.args.env, self.args.cams, self.args.img_width, self.args.img_height)
+
         fetch_env.FetchEnv.__init__(
             self, MODEL_XML_PATH, has_object=True, block_gripper=False, n_substeps=20,
             gripper_extra_height=0.2, target_in_the_air=True, target_offset=0.0,
             obj_range=0.15, target_range=0.15, distance_threshold=0.05,
             initial_qpos=initial_qpos, reward_type=reward_type)
         utils.EzPickle.__init__(self)
-
-        self.mvae = import_vae(self.args.env, self.args.cams, self.args.mvae_mode, self.args.img_width,
-                               self.args.img_height)
-        self.goal_set = import_goal_set(self.args.env, self.args.cams, self.args.img_width, self.args.img_height)
 
     '''
     def _viewer_setup(self):
@@ -50,47 +55,18 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, utils.EzPickle):
     '''
 
     def _sample_goal(self):
-        # Sample randomly from goalset
-        index = np.random.randint(20)
-        goal_0 = self.goal_set[index]
-        # goal_1 = goal_set_fetch_pick_1[index]
-        goal_0 = self.mvae.format(goal_0)
-        # goal_1 = self.fetch_pick_vae_1.format(goal_1)
-        save_image(goal_0.cpu().view(-1, 3, self.img_size, self.img_size), 'videos/goal/goal.png')
-        # save_image(goal_1.cpu().view(-1, 3, self.img_size, self.img_size), 'videos/goal/goal_1.png')
-
-        x_0, y_0 = self.mvae.encode(goal_0)
-        # x_1, y_1 = self.fetch_pick_vae_1.encode(goal_1)
-        goal_0 = self.mvae.reparameterize(x_0, y_0)
-        # goal_1 = self.fetch_pick_vae_1.reparameterize(x_1, y_1)
-        goal_0 = goal_0.detach().cpu().numpy()
-        # goal_1 = goal_1.detach().cpu().numpy()
-
-        # goal = np.concatenate((np.squeeze(goal_0), np.squeeze(goal_1)))
-        goal = np.squeeze(goal_0)
-        # goal /= 5.1
-
-        return goal.copy()
+        goal_imgs = self.goal_set[np.random.randint(self.goal_set.shape[0])]
+        cat_img = np.concatenate(goal_imgs, axis=1)
+        cat_img = vae.utils.image_to_tensor(cat_img)
+        save_image(cat_img.cpu().view(-1, 3, self.mvae.height, cat_img.shape[3]), 'videos/goal/goal.png')
+        return vae.utils.tensor_to_np(self.mvae.encode(goal_imgs))
 
     def _get_image(self):
-        rgb_array_0 = np.array(self.render(mode='rgb_array', width=84, height=84, cam_name="cam_0"))
-        # rgb_array_1 = np.array(self.render(mode='rgb_array', width=84, height=84, cam_name="cam_1"))
-        tensor_0 = vae_fetch_pick_0.format(rgb_array_0)
-        # tensor_1 = self.fetch_pick_vae_1.format(rgb_array_1)
-        x_0, y_0 = vae_fetch_pick_0.encode(tensor_0)
-        # x_1, y_1 = self.fetch_pick_vae_1.encode(tensor_1)
-        obs_0 = vae_fetch_pick_0.reparameterize(x_0, y_0)
-        # obs_1 = self.fetch_pick_vae_1.reparameterize(x_1, y_1)
-        obs_0 = obs_0.detach().cpu().numpy()
-        # obs_1 = obs_1.detach().cpu().numpy()
+        images = np.empty([self.mvae.num_cams, self.mvae.height, self.mvae.width, 3])
+        for c in range(self.mvae.num_cams):
+            images[c] = capture_image_by_cam(self, self.args.cams[c], self.mvae.width, self.mvae.height)
 
-        # obs = np.concatenate((np.squeeze(obs_0), np.squeeze(obs_1)))
-        obs = np.squeeze(obs_0)
-        # obs /= 5.1
-
-        save_image(tensor_0.cpu().view(-1, 3, 84, 84), 'fetch_pick_0.png')
-        # save_image(tensor_1.cpu().view(-1, 3, 84, 84), 'fetch_pick_1.png')
-        return obs
+        return vae.util.tensor_to_np(self.mvae.encode(images))
 
     def _generate_state(self):
         if self.visible:

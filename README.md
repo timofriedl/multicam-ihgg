@@ -36,7 +36,7 @@ For more information see the usage `python trainer.py -h`.
 Test your trained VAE model with this script:
 
 ```
-python decode_test.py
+python decode_test.py --env FetchReach-v1 --mvae_mode ec --cams front_side
 ```
 
 ## HGG
@@ -46,7 +46,7 @@ python decode_test.py
 Train the agent with HGG by running
 
 ```
-python train.py --tag 100 --learn hgg --env=FetchReach-v1 --epoches 40 --cycles 20
+python train.py --tag 100 --learn hgg --env=FetchReach-v1 --mvae_mode ce --cams front_side --epoches 40 --cycles 20
 ```
 
 ### Playing
@@ -63,5 +63,5 @@ python play_new.py --env FetchReach-v1 --play_path log/100-FetchReach-v1-hgg-ec/
 To plot the agent's performance on multiple training runs, execute
 
 ```
-python plot.py FetchReach-v1 --mvae_mode ec --cams front_side
+python plot.py FetchReach-v1 --cams front_side
 ```

@@ -66,8 +66,6 @@ if __name__ == "__main__":
     parser.add_argument('--naming', type=int, default=0)
     parser.add_argument('--e_per_c', type=int, default=50)
     parser.add_argument('--save_path', type=str, default="./plot.png")
-    parser.add_argument('--mvae_mode', help='multicam vae encoding mode', type=str, required=True,
-                        choices=['ec', 'ce', 'ece'])
     parser.add_argument('--cams', help='the names of the camera perspectives, separated with an underscore', type=str,
                         required=True)
     args = parser.parse_args()
@@ -209,7 +207,7 @@ if __name__ == "__main__":
     plt.xlabel('Iteration')
     plt.ylabel('Median Success Rate')
     plt.legend(loc=4)
-    plt.savefig(os.path.join(args.dir, 'fig_{}_{}_{}.pdf'.format(env_id, args.base_name, args.mvae_mode)), format='pdf')
+    plt.savefig(os.path.join(args.dir, 'fig_{}_{}.pdf'.format(env_id, args.base_name)), format='pdf')
     """
     if args.save_path:
         plt.savefig(args.save_path)
