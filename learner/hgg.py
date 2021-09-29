@@ -12,16 +12,16 @@ from gym.envs.robotics.utils import capture_image_by_cam
 from utils.gcc_utils import gcc_load_lib, c_double
 
 # Training data settings
-generate_train_data = True
-dataset_size = 32  # 16384
+generate_train_data = False
+dataset_size = 16384
 use_lefe = True
-lefe_duration = 32  # 1024
+lefe_duration = 2048
 
 if use_lefe:
     print("Generating random positions...")
-    obj_xs = np.random.uniform(1.05, 1.55, dataset_size)
-    obj_ys = np.random.uniform(0.40, 1.10, dataset_size)
-    obj_zs = np.random.uniform(0.40, 0.60, dataset_size)
+    obj_xs = np.random.uniform(0.55, 2.05, dataset_size)  # 1.05, 1.55, dataset_size)
+    obj_ys = np.random.uniform(0.00, 1.50, dataset_size)  # 0.40, 1.10, dataset_size)
+    obj_zs = np.random.uniform(0.20, 0.80, dataset_size)  # 0.40, 0.80, dataset_size)
     obj_pos = np.array(list(zip(obj_xs, obj_ys, obj_zs)))
     del obj_xs
     del obj_ys

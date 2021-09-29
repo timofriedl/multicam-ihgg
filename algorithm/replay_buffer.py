@@ -4,6 +4,8 @@ import numpy as np
 
 from envs.utils import quaternion_to_euler_angle
 
+fetch_height = np.load('data/Fetch_Env/height.npy')
+
 
 def goal_concat(obs, goal):
     return np.concatenate([obs, goal], axis=0)
@@ -42,12 +44,15 @@ class Trajectory:
 
             # For Fetch_Reach, Fetch_Push, Fetch_Slide, where height is the same
 
-            height = np.load('data/Fetch_Env/height.npy')
+            height = copy.deepcopy(fetch_height)
             if obj.shape[1] == 51:
-                height = height[:, : 51]
+                height = height[:, :51]
 
-            # For PickAndPlace, since height matters
-            # height = obj[:, :, 2]
+            """
+            if 'PickAndPlace' in env_id:
+                height = .25 - (obj[:, 1:, 1] / 4.)
+            else:
+            """
             height_0 = np.repeat(height[:, 0].reshape(-1, 1), height[:, 1::].shape[1], axis=1)
             height = height[:, 1::] - height_0
 

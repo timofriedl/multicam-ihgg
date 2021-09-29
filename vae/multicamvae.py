@@ -15,7 +15,7 @@ from vae.utils import image_to_tensor, tensor_to_image, images_to_tensor, tensor
 
 
 class MultiCamVae:
-    def __init__(self, num_cams: int, width: int, height: int, latent_dim: int):
+    def __init__(self, num_cams, width, height, latent_dim: int):
         self.num_cams = num_cams
         self.width = width
         self.height = height
@@ -38,12 +38,12 @@ class MultiCamVae:
 
     @staticmethod
     @abc.abstractmethod
-    def load(base_path: str, num_cams: int, width: int, height: int, latent_dim: int):
+    def load(base_path, num_cams, width, height, latent_dim: int):
         return
 
 
 class ConcatEncodeVae(MultiCamVae):
-    def __init__(self, num_cams: int, width: int, height: int, latent_dim: int):
+    def __init__(self, num_cams, width, height, latent_dim: int):
         super().__init__(num_cams, width, height, latent_dim)
         self.vae = CoordBDVAE(width * num_cams, height, latent_dim)
 
@@ -56,21 +56,29 @@ class ConcatEncodeVae(MultiCamVae):
         concat_image = tensor_to_image(self.vae.decode(tensor_wrap(latent)))
         return np.array(np.hsplit(concat_image, self.num_cams))
 
-    def train(self, dataset: np.ndarray, model_name, batch_size, epochs):
+    def train(self, dataset: np.ndarray, model_name, batch_size, epochs, lefe=False, lefe_dataset=None):
         print("Concatenating images...")
         concat_dataset = np.empty([dataset.shape[0], self.vae.height, self.vae.width, 3])
+        if lefe:
+            concat_lefe_dataset = np.empty(concat_dataset.shape)
+
         for i in tqdm(range(dataset.shape[0])):
-            concat_dataset[i] = np.concatenate(dataset[i][0:self.num_cams], axis=1)
+            concat_dataset[i] = np.concatenate(dataset[i, :self.num_cams], axis=1)
+            if lefe:
+                concat_lefe_dataset[i] = np.concatenate(lefe_dataset[i, :self.num_cams], axis=1)
 
         print("Converting to tensor...")
         data = images_to_tensor(concat_dataset)
-        dl = DataLoader(data, batch_size=batch_size, shuffle=True)
+        dl = DataLoader(data, batch_size=batch_size, shuffle=not lefe)
+        if lefe:
+            lefe_data = images_to_tensor(concat_lefe_dataset)
+            lefe_dl = DataLoader(lefe_data, batch_size=batch_size, shuffle=False)
 
         print("Training...")
-        Trainer.train_vae(dl, self.vae, model_name, epochs=epochs, bar_log=True)
+        Trainer.train_vae(dl, self.vae, model_name, epochs=epochs, bar_log=True, goal_dataset=lefe_dl if lefe else dl)
 
     @staticmethod
-    def load(base_path: str, num_cams: int):
+    def load(base_path, num_cams):
         coordbdvae = torch.load(base_path + ".pt")
         mvae = ConcatEncodeVae(num_cams, coordbdvae.width // num_cams, coordbdvae.height, coordbdvae.latent_dim)
         mvae.vae = coordbdvae
@@ -78,7 +86,7 @@ class ConcatEncodeVae(MultiCamVae):
 
 
 class EncodeConcatVae(MultiCamVae):
-    def __init__(self, num_cams: int, width: int, height: int, latent_dim: int):
+    def __init__(self, num_cams, width, height, latent_dim: int):
         super().__init__(num_cams, width, height, latent_dim)
         self.vaes = list(map(lambda _: CoordBDVAE(width, height, latent_dim), range(num_cams)))
 
@@ -112,14 +120,15 @@ class EncodeConcatVae(MultiCamVae):
 
             if lefe:
                 lefe_data = images_to_tensor(lefe_dataset[:, c])
-                lefe_dl = DataLoader(lefe_data, batch_size=batch_size, shuffle=not lefe)
+                lefe_dl = DataLoader(lefe_data, batch_size=batch_size, shuffle=False)
 
             print("Training...")
-            Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c), goal_dataset=lefe_dl,
+            Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c),
+                              goal_dataset=lefe_dl if lefe else dl,
                               epochs=epochs // self.num_cams, bar_log=True)
 
     @staticmethod
-    def load(base_path: str, num_cams: int):
+    def load(base_path, num_cams):
         vaes = list()
         for i in range(num_cams):
             vaes.append(torch.load("{}_{}.pt".format(base_path, i)))
@@ -130,7 +139,7 @@ class EncodeConcatVae(MultiCamVae):
 
 
 class EncodeConcatEncodeVae(MultiCamVae):
-    def __init__(self, num_cams: int, width: int, height: int, latent_dim: int):
+    def __init__(self, num_cams, width, height, latent_dim: int):
         super().__init__(num_cams, width, height, latent_dim)
         self.vaes = list(map(lambda _: CoordBDVAE(width, height, latent_dim), range(num_cams)))
         self.inner_vae = InnerVae(input_dim=num_cams * latent_dim, latent_dim=latent_dim)
@@ -197,12 +206,12 @@ class EncodeConcatEncodeVae(MultiCamVae):
 
             if lefe:
                 lefe_data = images_to_tensor(lefe_dataset[:, c])
-                lefe_dl = DataLoader(lefe_data, batch_size=batch_size, shuffle=not lefe)
+                lefe_dl = DataLoader(lefe_data, batch_size=batch_size, shuffle=False)
 
             print("Training...")
             ep = 0 if skip_outer else epochs // (self.num_cams + 1)
             Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c), epochs=ep, bar_log=True,
-                              goal_dataset=lefe_dl)
+                              goal_dataset=lefe_dl if lefe else dl)
 
         print("Inner VAE:")
         print("Initializing dataset...")
@@ -218,7 +227,7 @@ class EncodeConcatEncodeVae(MultiCamVae):
         Trainer.train_vae(dl, self.inner_vae, model_name="{}_inner".format(model_name), epochs=ep, bar_log=True)
 
     @staticmethod
-    def load(base_path: str, num_cams: int):
+    def load(base_path, num_cams):
         vaes = list()
         for i in range(num_cams):
             vaes.append(torch.load("{}_{}.pt".format(base_path, i)))

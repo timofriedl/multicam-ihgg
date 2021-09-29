@@ -52,7 +52,7 @@ class Trainer:
     def train_vae(dataset, model, model_name, goal_dataset=None, model_folder="./models/", alpha=10., beta=1.,
                   bar_log=False,
                   log_every=10,
-                  load=True, save_images_every=1000, save_every=50, start_epoch=0, epochs=500, entanglement_data=None):
+                  load=True, save_images_every=1000, save_every=10, start_epoch=0, epochs=500, entanglement_data=None):
         if not bar_log:
             print(f'Device: {device}')
 
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     limit = args["dataset_limit"]
     bat = args["batch_size"]
 
-    fac = 10
+    fac = 50
 
     for h in range(1) if limit == -1 else tqdm(range(dataset.shape[0] * fac // limit)):
         if limit == -1:

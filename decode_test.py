@@ -44,7 +44,7 @@ if __name__ == "__main__":
     min = torch.tensor([-1E10]).repeat(latent_dim).reshape(-1, 1)
     max = torch.tensor([1E10]).repeat(latent_dim).reshape(-1, 1)
     latent_range = torch.hstack((max, min)).to(device)
-    dataset = np.load("./vae/data/mvae_train_data_fetch_push_front_side_top_64.npy")[:, 0:2]
+    dataset = np.load("./vae/data/mvae_lefe_train_data_fetch_pick_and_place_front_side_top_64.npy")[:16384, :2]
     for i in tqdm(range(dataset.shape[0] // 100)):
         latent = vae.encode(dataset[i]).to(device)
         latent_range[:, 0] = torch.minimum(latent_range[:, 0], latent)

@@ -11,8 +11,9 @@ from algorithm.replay_buffer import goal_based_process
 from common import get_args
 from envs import make_env
 from gym.envs.robotics.utils import capture_image_by_cam
-
 # Video export settings
+from vae.import_vae import import_vae
+
 res_y = 512
 video_path = './videos/{}_{}_{}_{}.avi'
 
@@ -47,6 +48,9 @@ class Player:
     def play(self):
         # play policy on env
         env = self.env
+        if not hasattr(env, "mvae"):
+            env.mvae = import_vae(env.args.env, env.args.cams, env.args.mvae_mode, env.args.img_width,
+                                  env.args.img_height)
 
         res_x = int(res_y * self.args.img_width / self.args.img_height)
 
@@ -71,10 +75,16 @@ class Player:
                 if not hasattr(env, 'viewer'):
                     env.viewer = env.sim.render_contexts[0]
 
-                imgs = list()
-                for cam in self.args.cams:
-                    imgs.append(capture_image_by_cam(env, cam, res_x, res_y))
-                rgb_array = np.concatenate(imgs, axis=1)
+                hq_imgs = np.empty([len(self.args.cams), res_y, res_x, 3], dtype=np.uint8)
+                lq_imgs = np.empty([len(self.args.cams), env.mvae.height, env.mvae.width, 3], dtype=np.uint8)
+                for c, cam in enumerate(self.args.cams):
+                    hq_imgs[c] = capture_image_by_cam(env, cam, res_x, res_y)
+                    lq_imgs[c] = capture_image_by_cam(env, cam, env.mvae.width, env.mvae.height)
+
+                rgb_array = np.concatenate(hq_imgs, axis=1)
+
+                recs = env.mvae.forward(lq_imgs)
+                recs_array = np.concatenate(recs, axis=1)
 
                 path = 'videos/frames/frame_' + str(i * self.timesteps + timestep) + '.png'
 
@@ -82,9 +92,8 @@ class Player:
                 bg = Image.fromarray(rgb_array)
                 bg.putalpha(288)
                 bg = Image.alpha_composite(bg, goal_img)
-                # bg = self.get_concat_h(bg, goal_img)
-                bg.save(path)
-                # Image.fromarray(rgb_array).show()
+                rc = Image.fromarray(recs_array).resize((len(self.args.cams) * res_x, res_y))
+                self.get_concat_v(bg, rc).save(path)
 
     def make_video(self, path_to_folder, ext_end, path):
         image_files = [f for f in os.listdir(path_to_folder) if f.endswith(ext_end)]
@@ -105,6 +114,12 @@ class Player:
         dst = Image.new('RGB', (im1.img_width + im2.img_width, im1.img_height))
         dst.paste(im1, (0, 0))
         dst.paste(im2, (im1.img_width, 0))
+        return dst
+
+    def get_concat_v(self, im1, im2):
+        dst = Image.new('RGB', (im1.width, im1.height + im2.height))
+        dst.paste(im1, (0, 0))
+        dst.paste(im2, (0, im1.height))
         return dst
 
 
