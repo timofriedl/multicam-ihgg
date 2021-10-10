@@ -2,10 +2,13 @@ import numpy as np
 
 from gym.envs.robotics import rotations, robot_env, utils
 
+sqrts = np.sqrt(np.arange(128))
+
 
 def goal_distance(goal_a, goal_b):
     assert goal_a.shape == goal_b.shape
-    return np.linalg.norm(goal_a - goal_b, axis=-1)
+    return np.linalg.norm(goal_a - goal_b, axis=-1) / sqrts[
+        goal_a.shape[0]]  # TODO divided through sqrt of number of dimensions for better comparison
 
 
 class FetchEnv(robot_env.RobotEnv):

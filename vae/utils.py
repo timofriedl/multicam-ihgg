@@ -51,14 +51,13 @@ def tensor_to_image(tensor: Tensor) -> np.ndarray:
     return image.transpose(1, 2, 0)
 
 
-def save_examples(examples: Tensor, name: str, img_format: str = "jpeg") -> None:
+def save_examples(examples: Tensor, name, img_format="jpeg") -> None:
     clipped = torch.clamp(examples.detach(), 0, 1)
     image = make_grid(clipped)
     save_image(image, "images/{0}.{1}".format(name, img_format))
 
 
-def loss_fn(x: Tensor, x_rec: Tensor, mu: float, logvar: float, alpha: float = 10., beta: float = 1.) -> \
-        (float, float, float):
+def loss_fn(x: Tensor, x_rec: Tensor, mu: float, logvar: float, alpha=10., beta=1.) -> (float, float, float):
     batch_size = x.size(0)
 
     kl = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp()).sum(dim=-1).mean()
@@ -70,8 +69,7 @@ def loss_fn(x: Tensor, x_rec: Tensor, mu: float, logvar: float, alpha: float = 1
     return alpha * mse_loss, beta * kl, alpha * mse_loss + beta * kl
 
 
-def loss_fn_weighted(x: Tensor, x_rec: Tensor, mu: float, logvar: float, alpha: float = 10., beta: float = 1.) -> \
-        (float, float, float):
+def loss_fn_weighted(x: Tensor, x_rec: Tensor, mu: float, logvar: float, alpha=10., beta=1.) -> (float, float, float):
     batch_size = x.size(0)
 
     kl = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp()).sum(dim=-1).mean()
@@ -86,8 +84,7 @@ def loss_fn_weighted(x: Tensor, x_rec: Tensor, mu: float, logvar: float, alpha: 
     return alpha * mse_loss, beta * kl, alpha * mse_loss + beta * kl
 
 
-def loss_fn_weighted2(x: Tensor, x_rec: Tensor, mu: float, logvar: float, alpha: float = 10., beta: float = 1.) -> \
-        (float, float, float):
+def loss_fn_weighted2(x: Tensor, x_rec: Tensor, mu: float, logvar: float, alpha=10., beta=1.) -> (float, float, float):
     batch_size = x.size(0)
 
     if len(x.shape) == 2:

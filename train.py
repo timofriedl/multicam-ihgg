@@ -1,16 +1,26 @@
 import pickle
 import time
 
+import tensorflow as tf
 from tqdm import tqdm
 
 from common import get_args, experiment_setup
+
+load = False
 
 
 def train():
     # Getting arguments from command line + defaults
     # Set up learning environment including, gym env, ddpg agent, hgg/normal learner, tester
-    args = get_args()
+    args = get_args(clear_log=not load)
     env, env_test, agent, buffer, learner, tester = experiment_setup(args)
+
+    if load:
+        play_dir = "log/100-FetchPick2AndPlace-v1-hgg-ce-BAK2/"
+        meta_path = "{}saved_policy-best.meta".format(play_dir)
+        saver = tf.train.import_meta_graph(meta_path)
+        saver.restore(agent.sess, tf.train.latest_checkpoint(play_dir))
+
     args.logger.summary_init(agent.graph, agent.sess)
 
     # Progress info

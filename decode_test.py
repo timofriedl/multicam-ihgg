@@ -51,9 +51,11 @@ if __name__ == "__main__":
         latent_range[:, 1] = torch.maximum(latent_range[:, 1], latent)
         torch.cuda.empty_cache()
 
+    """
     alpha = .1
     latent_range[:, 0] -= alpha * (latent_range[:, 1] - latent_range[:, 0])
     latent_range[:, 1] += alpha * (latent_range[:, 1] - latent_range[:, 0])
+    """
 
     sample_latent = vae.encode(dataset[0])
 

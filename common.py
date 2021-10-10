@@ -8,7 +8,7 @@ from test import Tester
 from utils.os_utils import get_arg_parser, get_logger, str2bool
 
 
-def get_args():
+def get_args(clear_log=True):
     parser = get_arg_parser()
 
     parser.add_argument('--tag', help='terminal tag in logger', type=str, default='')
@@ -103,7 +103,7 @@ def get_args():
         logger_name = logger_name + '-graph'
     if args.stop_hgg_threshold < 1:
         logger_name = logger_name + '-stop'
-    args.logger = get_logger(logger_name)
+    args.logger = get_logger(logger_name, clear=clear_log)
 
     for key, value in args.__dict__.items():
         if key != 'logger':

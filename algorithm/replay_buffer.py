@@ -48,13 +48,15 @@ class Trajectory:
             if obj.shape[1] == 51:
                 height = height[:, :51]
 
-            """
             if 'PickAndPlace' in env_id:
-                height = .25 - (obj[:, 1:, 1] / 4.)
+                obj = obj[:, :, :3]
+                l0 = obj[:, 1:, 0]
+                l1 = obj[:, 1:, 1]
+                l2 = obj[:, 1:, 2]
+                height = -0.11 * l0 - 0.08 * l1 + 0.07 * l2
             else:
-            """
-            height_0 = np.repeat(height[:, 0].reshape(-1, 1), height[:, 1::].shape[1], axis=1)
-            height = height[:, 1::] - height_0
+                height_0 = np.repeat(height[:, 0].reshape(-1, 1), height[:, 1::].shape[1], axis=1)
+                height = height[:, 1::] - height_0
 
             g, m, delta_t = 9.81, 1, 0.04
             potential_energy = g * m * height

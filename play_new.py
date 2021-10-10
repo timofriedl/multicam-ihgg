@@ -40,6 +40,12 @@ class Player:
         self.raw_obs_ph = graph.get_tensor_by_name("raw_obs_ph:0")
         self.pi = graph.get_tensor_by_name("main/policy/net/pi/Tanh:0")
 
+        """
+        self.goal_imgs = []  
+        self.positions = np.empty([4100, 7], dtype=np.float32)
+        self.counter = 0  
+        """
+
     def my_step_batch(self, obs):
         # compute actions from obs based on current policy by running tf session initialized before
         actions = self.sess.run(self.pi, {self.raw_obs_ph: obs})
@@ -80,6 +86,18 @@ class Player:
                 for c, cam in enumerate(self.args.cams):
                     hq_imgs[c] = capture_image_by_cam(env, cam, res_x, res_y)
                     lq_imgs[c] = capture_image_by_cam(env, cam, env.mvae.width, env.mvae.height)
+
+                """
+                if timestep % 5 == 0:
+                    goal_imgs = np.empty([3, 64, 64, 3])
+                    goal_imgs[0] = capture_image_by_cam(env, "front", 64, 64)
+                    goal_imgs[1] = capture_image_by_cam(env, "side", 64, 64)
+                    goal_imgs[2] = capture_image_by_cam(env, "top", 64, 64)
+                    self.goal_imgs.append(goal_imgs)
+                    pos = env.sim.data.get_joint_qpos('object0:joint')
+                    self.positions[self.counter] = pos
+                    self.counter += 1
+                """
 
                 rgb_array = np.concatenate(hq_imgs, axis=1)
 
@@ -129,6 +147,12 @@ if __name__ == "__main__":
         player = Player(args)
         print("Playing...")
         player.play()
+
+        """
+        np.save("./data/Fetch_Env/mvae_goal_set_NEW.npy", np.array(player.goal_imgs, dtype=np.uint8)) 
+        np.save("./data/Fetch_Env/mvae_goal_set_NEW_positions.npy", player.positions)
+        """
+
         path = video_path.format(args.env, args.base_name, args.mvae_mode, args.play_epoch)
         print("Making video...")
         player.make_video('videos/frames/', '.png', path)

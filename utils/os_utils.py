@@ -68,7 +68,7 @@ def load_npz_info(file_path):
 
 
 class Logger:
-    def __init__(self, name):
+    def __init__(self, name, clear=True):
         make_dir('log', clear=False)
         make_dir('log/text', clear=False)
         if name is None:
@@ -81,7 +81,7 @@ class Logger:
         self.logger = logging.getLogger(log_file)
         self.logger.setLevel(logging.DEBUG)
 
-        make_dir(self.my_log_dir, clear=True)
+        make_dir(self.my_log_dir, clear=clear)
         self.csv_file_path = "{}progress.csv".format(self.my_log_dir)
 
         FileHandler = logging.FileHandler(log_file)
@@ -249,11 +249,11 @@ class Logger:
 
 
 class SummaryWriter:
-    def __init__(self, graph, sess, summary_path):
+    def __init__(self, graph, sess, summary_path, clear=True):
         self.graph = graph
         self.sess = sess
         self.summary_path = summary_path
-        make_dir(summary_path, clear=True)
+        make_dir(summary_path, clear=clear)
 
         self.available_types = ['scalar']
         self.scalars = {}
@@ -337,5 +337,5 @@ class SummaryWriter:
             self.test_writer.flush()
 
 
-def get_logger(name=None):
-    return Logger(name)
+def get_logger(name=None, clear=True):
+    return Logger(name, clear=clear)

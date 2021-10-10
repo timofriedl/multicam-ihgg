@@ -26,6 +26,7 @@ if use_lefe:
     del obj_xs
     del obj_ys
     del obj_zs
+    # obj_pos = np.load("./vae/data/mvae_lefe_positions_fetch_pick_and_place_front_side_top_64_GRIP.npy")[:dataset_size]
 
 
 class TrajectoryPool:
@@ -274,7 +275,7 @@ class HGGLearner:
         if not hasattr(env, 'viewer'):
             env.viewer = env.sim.render_contexts[0]
 
-        if timestep % 5 == 0 and self.count < dataset_size:
+        if self.count < dataset_size and timestep % 5 == 0:
             imgs = np.empty(self.train_data.shape[1:], dtype=np.uint8)
 
             for pos in range(self.count - lefe_duration, self.count):

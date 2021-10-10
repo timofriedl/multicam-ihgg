@@ -46,6 +46,7 @@ class ConcatEncodeVae(MultiCamVae):
     def __init__(self, num_cams, width, height, latent_dim: int):
         super().__init__(num_cams, width, height, latent_dim)
         self.vae = CoordBDVAE(width * num_cams, height, latent_dim)
+        self.inner_lat_dim = latent_dim
 
     def encode(self, images: np.ndarray) -> Tensor:
         single_image = np.concatenate(images, axis=1)
@@ -75,7 +76,9 @@ class ConcatEncodeVae(MultiCamVae):
             lefe_dl = DataLoader(lefe_data, batch_size=batch_size, shuffle=False)
 
         print("Training...")
-        Trainer.train_vae(dl, self.vae, model_name, epochs=epochs, bar_log=True, goal_dataset=lefe_dl if lefe else dl)
+        beta = 10. if "pick_and_place" in model_name else 1.
+        Trainer.train_vae(dl, self.vae, model_name, epochs=epochs, bar_log=True, goal_dataset=lefe_dl if lefe else dl,
+                          beta=beta)
 
     @staticmethod
     def load(base_path, num_cams):
@@ -89,11 +92,12 @@ class EncodeConcatVae(MultiCamVae):
     def __init__(self, num_cams, width, height, latent_dim: int):
         super().__init__(num_cams, width, height, latent_dim)
         self.vaes = list(map(lambda _: CoordBDVAE(width, height, latent_dim), range(num_cams)))
+        self.inner_lat_dim = latent_dim * self.num_cams
 
     def encode(self, images: np.ndarray) -> Tensor:
         images = images_to_tensor(images)
 
-        latent = torch.empty(self.num_cams * self.latent_dim)
+        latent = torch.empty(self.inner_lat_dim)
         for c in range(self.num_cams):
             mu, logvar = self.vaes[c].encode(tensor_wrap(images[c]))
             z = self.vaes[c].sample(mu, logvar)[0]
@@ -143,6 +147,7 @@ class EncodeConcatEncodeVae(MultiCamVae):
         super().__init__(num_cams, width, height, latent_dim)
         self.vaes = list(map(lambda _: CoordBDVAE(width, height, latent_dim), range(num_cams)))
         self.inner_vae = InnerVae(input_dim=num_cams * latent_dim, latent_dim=latent_dim)
+        self.inner_lat_dim = latent_dim
 
     def outer_encode(self, images: np.ndarray) -> Tensor:
         images = images_to_tensor_cpu(images)

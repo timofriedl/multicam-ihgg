@@ -4,8 +4,8 @@ import random
 import numpy as np
 from torchvision.utils import save_image
 
-import vae.utils
 import gym.utils
+import vae.utils
 from gym.envs.robotics import fetch_env
 from gym.envs.robotics.utils import capture_image_by_cam
 from vae.import_vae import import_vae, import_goal_set
@@ -22,6 +22,9 @@ from vae.import_vae import import_vae, import_goal_set
 MODEL_XML_PATH = os.path.join('fetch', 'pick_and_place.xml')
 
 
+# ext_goal_set = np.load("./vae/data/mvae_lefe_train_data_fetch_pick_and_place_front_side_top_64.npy")[:, :2]
+
+
 class FetchPickAndPlaceEnv(fetch_env.FetchEnv, gym.utils.EzPickle):
     def __init__(self, args, reward_type='sparse'):
         initial_qpos = {
@@ -34,7 +37,10 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, gym.utils.EzPickle):
         self.args = args
         self.mvae = import_vae(self.args.env, self.args.cams, self.args.mvae_mode, self.args.img_width,
                                self.args.img_height)
+        self.reach_mvae = import_vae("FetchReach-v1", self.args.cams, self.args.mvae_mode, self.args.img_width,
+                                     self.args.img_height)
         self.goal_set = import_goal_set(self.args.env, self.args.cams, self.args.img_width, self.args.img_height)
+        self.arm_factor = 0.1  # influence of arm position to observation vector
 
         fetch_env.FetchEnv.__init__(
             self, MODEL_XML_PATH, has_object=True, block_gripper=False, n_substeps=20,
@@ -59,14 +65,19 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, gym.utils.EzPickle):
         cat_img = np.concatenate(goal_imgs, axis=1)
         cat_img = vae.utils.image_to_tensor(cat_img)
         save_image(cat_img.cpu().view(-1, 3, self.mvae.height, cat_img.shape[3]), 'videos/goal/goal.png')
-        return vae.utils.tensor_to_np(self.mvae.encode(goal_imgs))
+
+        lat_puck = vae.utils.tensor_to_np(self.mvae.encode(goal_imgs))
+        lat_arm = vae.utils.tensor_to_np(self.reach_mvae.encode(goal_imgs)) * self.arm_factor
+        return np.concatenate((lat_puck, lat_arm))
 
     def _get_image(self):
         images = np.empty([self.mvae.num_cams, self.mvae.height, self.mvae.width, 3])
         for c in range(self.mvae.num_cams):
             images[c] = capture_image_by_cam(self, self.args.cams[c], self.mvae.width, self.mvae.height)
 
-        return vae.utils.tensor_to_np(self.mvae.encode(images))
+        lat_puck = vae.utils.tensor_to_np(self.mvae.encode(images))
+        lat_arm = vae.utils.tensor_to_np(self.reach_mvae.encode(images)) * self.arm_factor
+        return np.concatenate((lat_puck, lat_arm))
 
     def _generate_state(self):
         """ Only care about visible arm
