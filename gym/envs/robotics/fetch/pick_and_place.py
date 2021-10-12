@@ -40,7 +40,7 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, gym.utils.EzPickle):
         self.reach_mvae = import_vae("FetchReach-v1", self.args.cams, self.args.mvae_mode, self.args.img_width,
                                      self.args.img_height)
         self.goal_set = import_goal_set(self.args.env, self.args.cams, self.args.img_width, self.args.img_height)
-        self.arm_factor = 0.1  # influence of arm position to observation vector
+        self.arm_factor = 0.5  # influence of arm position to observation vector
 
         fetch_env.FetchEnv.__init__(
             self, MODEL_XML_PATH, has_object=True, block_gripper=False, n_substeps=20,

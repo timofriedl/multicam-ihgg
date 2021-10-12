@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 
 import cv2
@@ -11,7 +12,6 @@ from algorithm.replay_buffer import goal_based_process
 from common import get_args
 from envs import make_env
 from gym.envs.robotics.utils import capture_image_by_cam
-# Video export settings
 from vae.import_vae import import_vae
 
 res_y = 512
@@ -41,9 +41,9 @@ class Player:
         self.pi = graph.get_tensor_by_name("main/policy/net/pi/Tanh:0")
 
         """
-        self.goal_imgs = []  
-        self.positions = np.empty([4100, 7], dtype=np.float32)
-        self.counter = 0  
+        self.goal_imgs = []
+        self.positions = np.empty([100, 7], dtype=np.float32)
+        self.counter = 0
         """
 
     def my_step_batch(self, obs):
@@ -88,14 +88,24 @@ class Player:
                     lq_imgs[c] = capture_image_by_cam(env, cam, env.mvae.width, env.mvae.height)
 
                 """
+                # Move cube to gripper
+                cube_pos = env.sim.data.get_joint_qpos('object0:joint')
+                grip_pos = env.sim.data.get_site_xpos('robot0:grip')
+                cube_pos = np.zeros(cube_pos.shape[0])
+                cube_pos[:3] = grip_pos[:3]
+                env.sim.data.set_joint_qpos('object0:joint', cube_pos)
+                env.sim.forward()
+
                 if timestep % 5 == 0:
+                    # Capture images
                     goal_imgs = np.empty([3, 64, 64, 3])
                     goal_imgs[0] = capture_image_by_cam(env, "front", 64, 64)
                     goal_imgs[1] = capture_image_by_cam(env, "side", 64, 64)
                     goal_imgs[2] = capture_image_by_cam(env, "top", 64, 64)
+
+                    # Append images
                     self.goal_imgs.append(goal_imgs)
-                    pos = env.sim.data.get_joint_qpos('object0:joint')
-                    self.positions[self.counter] = pos
+                    self.positions[self.counter] = cube_pos
                     self.counter += 1
                 """
 
@@ -141,15 +151,32 @@ class Player:
         return dst
 
 
+def make_dirs():
+    try:
+        shutil.rmtree("./videos/frames")
+    except FileNotFoundError:
+        pass
+
+    try:
+        shutil.rmtree("./videos/goal")
+    except FileNotFoundError:
+        pass
+
+    os.mkdir("./videos/frames")
+    os.mkdir("./videos/goal")
+
+
 if __name__ == "__main__":
     try:
         args = get_args()
+        make_dirs()
+
         player = Player(args)
         print("Playing...")
         player.play()
 
         """
-        np.save("./data/Fetch_Env/mvae_goal_set_NEW.npy", np.array(player.goal_imgs, dtype=np.uint8)) 
+        np.save("./data/Fetch_Env/mvae_goal_set_NEW.npy", np.array(player.goal_imgs, dtype=np.uint8))
         np.save("./data/Fetch_Env/mvae_goal_set_NEW_positions.npy", player.positions)
         """
 
