@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
@@ -40,11 +42,23 @@ if __name__ == "__main__":
     if isinstance(vae, EncodeConcatVae):
         latent_dim *= len(args.cams)
 
-    print("Normalizing latent values...")
     min = torch.tensor([-1E10]).repeat(latent_dim).reshape(-1, 1)
     max = torch.tensor([1E10]).repeat(latent_dim).reshape(-1, 1)
     latent_range = torch.hstack((max, min)).to(device)
-    dataset = np.load("./vae/data/mvae_lefe_train_data_fetch_pick_and_place_front_side_top_64.npy")[:16384, :2]
+
+    print("Loading dataset...")
+    w = args.img_width
+    h = args.img_height
+    env_parts = re.findall("[A-Z][^A-Z]*", args.env.split("-")[0])
+    path = "./vae/data/mvae_{}train_data_{}_{}_{}.npy" \
+        .format("lefe_" if "FetchPush" in args.env or "FetchPickAndPlace" in args.env else "",
+                "_".join(env_parts).lower(),
+                "front_side_top",
+                w if w == h else "{}_{}".format(w, h))
+    dataset = np.load(path)[:16384, :2]
+    np.random.shuffle(dataset)
+
+    print("Normalizing latent values...")
     for i in tqdm(range(dataset.shape[0] // 100)):
         latent = vae.encode(dataset[i]).to(device)
         latent_range[:, 0] = torch.minimum(latent_range[:, 0], latent)

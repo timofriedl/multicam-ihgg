@@ -61,7 +61,7 @@ class Player:
         res_x = int(res_y * self.args.img_width / self.args.img_height)
 
         acc_sum, obs = 0.0, []
-        np.random.seed(18)
+        # np.random.seed(18)
         for i in tqdm(range(self.test_rollouts)):
             obs.append(goal_based_process(env.reset()))
             # Get Goal Image & resize

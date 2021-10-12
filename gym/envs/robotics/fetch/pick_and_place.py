@@ -22,9 +22,6 @@ from vae.import_vae import import_vae, import_goal_set
 MODEL_XML_PATH = os.path.join('fetch', 'pick_and_place.xml')
 
 
-# ext_goal_set = np.load("./vae/data/mvae_lefe_train_data_fetch_pick_and_place_front_side_top_64.npy")[:, :2]
-
-
 class FetchPickAndPlaceEnv(fetch_env.FetchEnv, gym.utils.EzPickle):
     def __init__(self, args, reward_type='sparse'):
         initial_qpos = {
