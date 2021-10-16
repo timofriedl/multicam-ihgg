@@ -127,9 +127,10 @@ class EncodeConcatVae(MultiCamVae):
                 lefe_dl = DataLoader(lefe_data, batch_size=batch_size, shuffle=False)
 
             print("Training...")
+            beta = 10. if "pick_and_place" in model_name else 1.
             Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c),
                               goal_dataset=lefe_dl if lefe else dl,
-                              epochs=epochs // self.num_cams, bar_log=True)
+                              epochs=epochs // self.num_cams, bar_log=True, beta=beta)
 
     @staticmethod
     def load(base_path, num_cams):
@@ -215,8 +216,9 @@ class EncodeConcatEncodeVae(MultiCamVae):
 
             print("Training...")
             ep = 0 if skip_outer else epochs // (self.num_cams + 1)
+            beta = 10. if "pick_and_place" in model_name else 1.
             Trainer.train_vae(dl, self.vaes[c], model_name="{}_{}".format(model_name, c), epochs=ep, bar_log=True,
-                              goal_dataset=lefe_dl if lefe else dl)
+                              goal_dataset=lefe_dl if lefe else dl, beta=beta)
 
         print("Inner VAE:")
         print("Initializing dataset...")
@@ -229,7 +231,8 @@ class EncodeConcatEncodeVae(MultiCamVae):
 
         print("Training...")
         ep = epochs // (self.num_cams + 1)
-        Trainer.train_vae(dl, self.inner_vae, model_name="{}_inner".format(model_name), epochs=ep, bar_log=True)
+        Trainer.train_vae(dl, self.inner_vae, model_name="{}_inner".format(model_name), epochs=ep, bar_log=True,
+                          beta=5.)
 
     @staticmethod
     def load(base_path, num_cams):

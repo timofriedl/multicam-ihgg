@@ -34,7 +34,7 @@ def rand(event):
 
 
 if __name__ == "__main__":
-    args = get_args()
+    args = get_args(clear_log=False)
 
     vae = import_vae(args.env, args.cams, args.mvae_mode, args.img_width, args.img_height)
 

@@ -355,7 +355,7 @@ class HGGLearner:
             if write_goals != 0 and len(goal_list) < write_goals:
                 goal_list.append(explore_goal.copy())
             obs = self.env_List[i].get_obs()
-            current = Trajectory(obs)
+            current = Trajectory(obs, args.mvae_mode)
             trajectory = [obs['achieved_goal'].copy()]
             for timestep in range(args.timesteps):
                 # get action from the ddpg policy

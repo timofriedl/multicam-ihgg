@@ -7,8 +7,7 @@ sqrts = np.sqrt(np.arange(128))
 
 def goal_distance(goal_a, goal_b):
     assert goal_a.shape == goal_b.shape
-    return np.linalg.norm(goal_a - goal_b, axis=-1) / sqrts[
-        goal_a.shape[0]]  # TODO divided through sqrt of number of dimensions for better comparison
+    return np.linalg.norm(goal_a - goal_b, axis=-1)
 
 
 class FetchEnv(robot_env.RobotEnv):
@@ -60,7 +59,7 @@ class FetchEnv(robot_env.RobotEnv):
         # Compute distance between goal and the achieved goal.
         d = goal_distance(achieved_goal, goal)
         if self.reward_type == 'sparse':
-            return -(d > self.distance_threshold).astype(np.float32)
+            return -(d > (self.distance_threshold * sqrts[goal.shape[0]])).astype(np.float32)
         else:
             return -d
 

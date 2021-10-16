@@ -8,10 +8,10 @@ from test import Tester
 from utils.os_utils import get_arg_parser, get_logger, str2bool
 
 
-def get_args(clear_log=True):
+def get_args(clear_log):
     parser = get_arg_parser()
 
-    parser.add_argument('--tag', help='terminal tag in logger', type=str, default='')
+    parser.add_argument('--tag', help='terminal tag in logger', type=str, default='100')
     parser.add_argument('--alg', help='backend algorithm', type=str, default='ddpg', choices=['ddpg', 'ddpg2'])
     parser.add_argument('--learn', help='type of training method', type=str, default='hgg',
                         choices=learner_collection.keys())

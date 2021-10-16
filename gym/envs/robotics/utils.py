@@ -122,5 +122,7 @@ def capture_image_by_cam(env, cam_name, width, height):
         return capture_image(env, 90, 0, 1.1, 1.3, .75, .6, width, height)
     elif cam_name == "top":
         return capture_image(env, 0, -90, 0.8, 1.3, .75, .6, width, height)
+    elif cam_name == "overview":
+        return capture_image(env, 150, -15, 2.0, 1.0, .74, .4, width, height)
     else:
         raise RuntimeError("Camera '{}' does not exist.".format(cam_name))

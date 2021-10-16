@@ -12,7 +12,7 @@ class NormalLearner:
     def learn(self, args, env, env_test, agent, buffer, write_goals=0):
         for _ in range(args.episodes):
             obs = env.reset()
-            current = Trajectory(obs)
+            current = Trajectory(obs, args.mvae_mode)
             for timestep in range(args.timesteps):
                 action = agent.step(obs, explore=True)
                 obs, reward, done, _ = env.step(action)

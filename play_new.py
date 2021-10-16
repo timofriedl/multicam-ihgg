@@ -6,11 +6,13 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from algorithm.replay_buffer import goal_based_process
 from common import get_args
 from envs import make_env
+from gym.envs.robotics import FetchReachEnv
 from gym.envs.robotics.utils import capture_image_by_cam
 from vae.import_vae import import_vae
 
@@ -69,6 +71,13 @@ class Player:
             goal_img = goal_img.resize((res_x * len(self.args.cams), res_y))
             goal_img.putalpha(70)
 
+            if "FetchReach" in env.args.env:
+                dot_pos = env.sim.data.get_joint_qpos('target0:joint')
+                dot_pos[0] += .4
+                dot_pos[1] += .1
+                dot_pos[2] += .3
+                env.sim.data.set_joint_qpos('target0:joint', dot_pos)
+
             for timestep in range(self.timesteps):
                 # body_id = env.sim.model.body_name2id('robot0:thbase')
                 # x = env.sim.data.body_xpos[body_id]
@@ -107,6 +116,11 @@ class Player:
                     self.goal_imgs.append(goal_imgs)
                     self.positions[self.counter] = cube_pos
                     self.counter += 1
+                """
+
+                """
+                plt.imsave("overview.png", capture_image_by_cam(env, "overview", 512, 512))
+                exit(0)
                 """
 
                 rgb_array = np.concatenate(hq_imgs, axis=1)
@@ -168,7 +182,7 @@ def make_dirs():
 
 if __name__ == "__main__":
     try:
-        args = get_args()
+        args = get_args(clear_log=False)
         make_dirs()
 
         player = Player(args)

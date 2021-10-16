@@ -46,7 +46,7 @@ python decode_test.py --env FetchReach-v1 --mvae_mode ec --cams front_side
 Train the agent with HGG by running
 
 ```
-python train.py --tag 100 --learn hgg --env=FetchReach-v1 --mvae_mode ce --cams front_side --epoches 40 --cycles 20
+python train.py --env=FetchReach-v1 --mvae_mode ce --cams front_side --epoches 40 --cycles 20
 ```
 
 ### Playing

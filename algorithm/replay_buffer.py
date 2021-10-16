@@ -16,7 +16,7 @@ def goal_based_process(obs):
 
 
 class Trajectory:
-    def __init__(self, init_obs):
+    def __init__(self, init_obs, mvae_mode):
         self.ep = {
             'obs': [copy.deepcopy(init_obs)],
             'rews': [],
@@ -24,6 +24,7 @@ class Trajectory:
             'done': []
         }
         self.length = 0
+        self.mvae_mode = mvae_mode
 
     def store_step(self, action, obs, reward, done):
         self.ep['acts'].append(copy.deepcopy(action))
@@ -48,12 +49,25 @@ class Trajectory:
             if obj.shape[1] == 51:
                 height = height[:, :51]
 
-            if 'PickAndPlace' in env_id:
-                obj = obj[:, :, :3]
-                l0 = obj[:, 1:, 0]
-                l1 = obj[:, 1:, 1]
-                l2 = obj[:, 1:, 2]
-                height = -0.11 * l0 - 0.08 * l1 + 0.07 * l2
+            if env_id == 'FetchPickAndPlace-v1':
+                if self.mvae_mode == 'ce':
+                    obj = obj[:, :, :3]
+                    height = obj[:, 1:, :].dot(np.array([-0.11, -0.08, 0.07]))
+                elif self.mvae_mode == 'ec' and obj.shape[2] == 18:
+                    obj = obj[:, :, :6]
+                    height_f = obj[:, 1:, :3].dot(np.array([0.00, -0.55, 0.00]))
+                    height_s = obj[:, 1:, 3:].dot(np.array([0.05, -0.09, 0.00]))
+                    height = (height_f + height_s) / 2.
+                elif self.mvae_mode == 'ec' and obj.shape[2] == 9:
+                    obj = obj[:, :, :3]
+                    height = obj[:, 1:, :].dot(np.array([0.00, -0.55, 0.00]))
+                elif self.mvae_mode == 'ece':
+                    obj = obj[:, :, :3]
+                    height = obj[:, 1:, :].dot(np.array([0.00, 0.00, 0.00]))
+                    raise NotImplementedError  # TODO
+                else:
+                    raise NotImplementedError(
+                        'No EBP height extraction for this FetchPickAndPlace-v1 configuration implemented.')
             else:
                 height_0 = np.repeat(height[:, 0].reshape(-1, 1), height[:, 1::].shape[1], axis=1)
                 height = height[:, 1::] - height_0

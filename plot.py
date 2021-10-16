@@ -80,6 +80,7 @@ if __name__ == "__main__":
                                                 glob2.glob(os.path.join(args.dir, '**', 'progress.csv'))]))
     print(paths)
     location = 4
+    paths = sorted(paths)
     for curr_path in paths:
         if not os.path.isdir(curr_path):
             continue
@@ -87,7 +88,11 @@ if __name__ == "__main__":
         if not args.dir in curr_path:
             continue
         """
-        clean_path = curr_path.replace('-' + env_id + '-hgg', args.base_name.replace('_', '-'))
+        print(curr_path)
+        if "single-" in curr_path:
+            clean_path = curr_path.replace('-' + env_id + '-single', "single")
+        else:
+            clean_path = curr_path.replace('-' + env_id + '-hgg', args.base_name.replace('_', '-'))
         clean_path = os.path.basename(os.path.normpath(clean_path))
         clean_path = ''.join([i for i in clean_path if not i.isdigit()])
         # divide path into run (number in the beginning) and config (information on configuration, included in the path name)
