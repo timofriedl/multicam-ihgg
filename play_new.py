@@ -6,13 +6,11 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from algorithm.replay_buffer import goal_based_process
 from common import get_args
 from envs import make_env
-from gym.envs.robotics import FetchReachEnv
 from gym.envs.robotics.utils import capture_image_by_cam
 from vae.import_vae import import_vae
 
@@ -29,7 +27,7 @@ class Player:
         self.env_test = make_env(args)
         self.info = []
         self.test_rollouts = 10
-        self.timesteps = 50
+        self.timesteps = 40
 
         # get current policy from path (restore tf session + graph)
         self.play_dir = args.play_path
@@ -62,6 +60,9 @@ class Player:
 
         res_x = int(res_y * self.args.img_width / self.args.img_height)
 
+        if "FetchReach" in env.args.env:
+            self.dot_pos = np.load("./data/Fetch_Env/mvae_goal_pos_fetch_reach.npy")
+
         acc_sum, obs = 0.0, []
         # np.random.seed(18)
         for i in tqdm(range(self.test_rollouts)):
@@ -70,13 +71,6 @@ class Player:
             goal_img = Image.open('./videos/goal/goal.png')
             goal_img = goal_img.resize((res_x * len(self.args.cams), res_y))
             goal_img.putalpha(70)
-
-            if "FetchReach" in env.args.env:
-                dot_pos = env.sim.data.get_joint_qpos('target0:joint')
-                dot_pos[0] += .4
-                dot_pos[1] += .1
-                dot_pos[2] += .3
-                env.sim.data.set_joint_qpos('target0:joint', dot_pos)
 
             for timestep in range(self.timesteps):
                 # body_id = env.sim.model.body_name2id('robot0:thbase')
@@ -92,6 +86,18 @@ class Player:
 
                 hq_imgs = np.empty([len(self.args.cams), res_y, res_x, 3], dtype=np.uint8)
                 lq_imgs = np.empty([len(self.args.cams), env.mvae.height, env.mvae.width, 3], dtype=np.uint8)
+
+                if "FetchReach" in env.args.env:
+                    dot_pos = np.zeros(7)
+                    x = self.dot_pos[env.env.goal_n]
+                    if np.linalg.norm(env.sim.data.get_site_xpos('robot0:grip') - x) < 0.1:
+                        dot_pos[2] = -10.
+                    else:
+                        dot_pos[:3] = x
+
+                    env.sim.data.set_joint_qpos('target0:joint', dot_pos)
+                    env.sim.data.set_joint_qvel('target0:joint', np.zeros(6))
+
                 for c, cam in enumerate(self.args.cams):
                     hq_imgs[c] = capture_image_by_cam(env, cam, res_x, res_y)
                     lq_imgs[c] = capture_image_by_cam(env, cam, env.mvae.width, env.mvae.height)

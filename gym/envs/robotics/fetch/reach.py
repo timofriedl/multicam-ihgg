@@ -41,7 +41,8 @@ class FetchReachEnv(fetch_env.FetchEnv, utils.EzPickle):
         utils.EzPickle.__init__(self)
 
     def _sample_goal(self):
-        goal_imgs = self.goal_set[np.random.randint(self.goal_set.shape[0])]
+        self.goal_n = np.random.randint(self.goal_set.shape[0])
+        goal_imgs = self.goal_set[self.goal_n]
         cat_img = np.concatenate(goal_imgs, axis=1)
         cat_img = vae.utils.image_to_tensor(cat_img)
         save_image(cat_img.cpu().view(-1, 3, self.mvae.height, cat_img.shape[3]), './videos/goal/goal.png')
