@@ -19,7 +19,7 @@ Train a multicam VAE model with commands like:
 
 ```
 cd vae
-python trainer.py -d ./data/mvae_train_data_fetch_reach_front_side_top_64.npy -n fetch_reach_front_side -m ec -e 500 -c 2 -l 8
+python trainer.py -d ./data/mvae_train_data_fetch_reach_front_side_top_64.npy -n fetch_reach_front_side -m ec -e 500 -c 2 -l 8 -r 2048
 ```
 
 with one of the multicam modes:

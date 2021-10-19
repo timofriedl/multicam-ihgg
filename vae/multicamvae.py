@@ -1,4 +1,5 @@
 import abc
+import sys
 from math import ceil
 
 import numpy as np
@@ -232,7 +233,7 @@ class EncodeConcatEncodeVae(MultiCamVae):
         print("Training...")
         ep = epochs // (self.num_cams + 1)
         Trainer.train_vae(dl, self.inner_vae, model_name="{}_inner".format(model_name), epochs=ep, bar_log=True,
-                          beta=5.)
+                          beta=5., save_images_every=sys.maxsize)
 
     @staticmethod
     def load(base_path, num_cams):

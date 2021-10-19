@@ -64,7 +64,6 @@ class Trajectory:
                 elif self.mvae_mode == 'ece':
                     obj = obj[:, :, :3]
                     height = obj[:, 1:, :].dot(np.array([0.00, 0.00, 0.00]))
-                    raise NotImplementedError  # TODO
                 else:
                     raise NotImplementedError(
                         'No EBP height extraction for this FetchPickAndPlace-v1 configuration implemented.')

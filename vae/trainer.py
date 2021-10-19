@@ -151,8 +151,7 @@ if __name__ == "__main__":
 
     print("Loading dataset...")
     dataset = np.load(args["dataset"])[:, 0:num_cams]
-    if lefe:
-        lefe_dataset = np.load(args["dataset"].replace("lefe_train_data", "lefe_data"))[:, 0:num_cams]
+    lefe_dataset = np.load(args["dataset"].replace("lefe_train_data", "lefe_data"))[:, 0:num_cams] if lefe else None
 
     width = dataset.shape[3]
     height = dataset.shape[2]
@@ -178,7 +177,7 @@ if __name__ == "__main__":
     limit = args["dataset_limit"]
     bat = args["batch_size"]
 
-    fac = 50
+    fac = 10
 
     for h in range(1) if limit == -1 else tqdm(range(dataset.shape[0] * fac // limit)):
         if limit == -1:
@@ -187,10 +186,11 @@ if __name__ == "__main__":
         else:
             permut = np.random.permutation(dataset.shape[0])
             dataset = dataset[permut]
-            lefe_dataset = lefe_dataset[permut]
+            if lefe:
+                lefe_dataset = lefe_dataset[permut]
 
             data = dataset[0:limit]
-            lefe_data = lefe_dataset[0:limit]
+            lefe_data = None if not lefe else lefe_dataset[0:limit]
 
             ep = args["epochs"] // fac
 
