@@ -14,10 +14,12 @@ Aleksandrov.
 ## Download Data
 
 Necessary data can be downloaded [here](https://syncandshare.lrz.de/getlink/fi6Lhfcdj2iHRgS6faib7CeB/multicam-ihgg). \
+\
 VAE training data as well as pre-trained models can be found in `vae`.\
 Goal sets and height information for I-HGG training are located in `data`.\
 Trained I-HGG agents and logging information are contained by `log_`. (Rename to `log` after downloading)\
-Copy the folders in the project root directory.
+\
+Copy the folders you need to the project root directory.
 
 ## VAE
 
