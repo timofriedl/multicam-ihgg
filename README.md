@@ -36,7 +36,6 @@ with one of the multicam modes:
 
 - ce (concat-encode)
 - ec (encode-concat)
-- ece (encode-concat-encode)
 
 To train with single-cam mode choose `-m ec -c 1`.\
 For more information see the usage `python trainer.py -h`.
