@@ -2,6 +2,13 @@ import numpy as np
 
 from gym import error
 
+"""
+Code adopted from James Li
+https://github.com/hakrrr/I-HGG
+
+Modifications for MultiCamVae by Timo Friedl
+"""
+
 try:
     import mujoco_py
 except ImportError as e:
@@ -100,6 +107,20 @@ def reset_mocap2body_xpos(sim):
 
 
 def capture_image(env, azimuth, eleviation, distance, lookat_0, lookat_1, lookat_2, width, height):
+    """
+    Captures an image from the specified perspective
+
+    :param env: the simulation environment
+    :param azimuth: the horizontal angle of the camera
+    :param eleviation: the vertical angle of the camera
+    :param distance: the distance between camera and specified lookat position
+    :param lookat_0: the x coordinate of the lookat position
+    :param lookat_1: the y coordinate of the lookat position
+    :param lookat_2: the z coordinate of the lookat position
+    :param width: the horizontal size of the output image
+    :param height: the vertical size of the output image
+    :return: a numpy array with shape [height, width, 3]
+    """
     cam = env.viewer.cam
     cam.azimuth = azimuth
     cam.elevation = eleviation
@@ -116,6 +137,15 @@ def capture_image(env, azimuth, eleviation, distance, lookat_0, lookat_1, lookat
 
 
 def capture_image_by_cam(env, cam_name, width, height):
+    """
+    Captures an image from the specified camera
+
+    :param env: the simulation environment
+    :param cam_name: the name of the camera, e.g. "front" or "side"
+    :param width: the horizontal size of the output image
+    :param height: the vertical size of the output image
+    :return: a numpy array with shape [height, width, 3]
+    """
     if cam_name == "front":
         return capture_image(env, 180, 0, 1.1, 1.3, .75, .6, width, height)
     elif cam_name == "side":

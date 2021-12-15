@@ -1,15 +1,20 @@
 import copy
-import sys
-from datetime import datetime
-
 import numpy as np
-
+import sys
 from algorithm.replay_buffer import Trajectory, goal_concat
+from datetime import datetime
 from envs import make_env
 from envs.distance_graph import DistanceGraph
 from envs.utils import goal_distance
 from gym.envs.robotics.utils import capture_image_by_cam
 from utils.gcc_utils import gcc_load_lib, c_double
+
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+
+Modifications by Timo Friedl
+"""
 
 # Training data settings
 generate_train_data = False
@@ -17,6 +22,7 @@ dataset_size = 16384
 use_lefe = True
 lefe_duration = 2048
 
+# Randomly generated positions for LEFE training data generation
 if use_lefe:
     print("Generating random positions...")
     obj_xs = np.random.uniform(0.55, 2.05, dataset_size)  # 1.05, 1.55, dataset_size)
@@ -244,60 +250,90 @@ class HGGLearner:
         env.sim.forward()
 
     def generate_train_data(self, timestep, i):
+        """
+        Generates training data for MultiCamVae HGG training
+
+        :param timestep: the current timestep
+        :param i: the current environment index
+        """
+        # Capture images every 5 timesteps
         if timestep % 5 == 0 and self.count < dataset_size:
+            # Setup viewer if missing
             env = self.env_List[i]
             if not hasattr(env, 'viewer'):
                 env.viewer = env.sim.render_contexts[0]
 
+            # For FetchPush set object location to random position
             if 'FetchPush' in env.args.env and np.random.randint(7) == 0:
                 x = np.random.uniform(1.05, 1.55)
                 y = np.random.uniform(0.40, 1.10)
                 HGGLearner.set_obj_pos(env, [x, y])
 
+            # For each camera capture image
             for c in range(len(self.cams)):
                 self.train_data[self.count][c] = capture_image_by_cam(env, self.cams[c], self.args.img_width,
                                                                       self.args.img_height)
 
+            # Print message every 100 image vectors
             if self.count % 100 == 0:
                 print('Captured {} situations from {} perspectives'.format(self.count, len(self.cams)))
 
             self.count += 1
 
         if self.count == dataset_size:
+            # Randomize dataset
             np.random.shuffle(self.train_data)
+
+            # Save
             np.save('./vae/data/mvae_train_data_NEW_TODO_RENAME.npy', self.train_data)
             print('Finished!')
             self.count += 1
             sys.exit()
 
-    def generate_train_data_lefe(self, timestep, i):
+    def generate_train_data_lefe(self, timestep: int, i: int):
+        """
+        Generates training data for MultiCamVae HGG training with Long Exposure Feature Extraction (LEFE)
+
+        :param timestep: the current timestep
+        :param i: the current environment index
+        """
+        # Setup environment viewer if missing
         env = self.env_List[i]
         if not hasattr(env, 'viewer'):
             env.viewer = env.sim.render_contexts[0]
 
+        # Take photo every 5 timesteps
         if self.count < dataset_size and timestep % 5 == 0:
             imgs = np.empty(self.train_data.shape[1:], dtype=np.uint8)
 
+            # Iterate through some object positions
             for pos in range(self.count - lefe_duration, self.count):
+                # Set object position
                 HGGLearner.set_obj_pos(env, obj_pos[pos])
 
+                # For all cameras capture image
                 for c in range(len(self.cams)):
                     imgs[c] = capture_image_by_cam(env, self.cams[c], self.args.img_width, self.args.img_height)
 
+                # Add images to lefe dataset to create blurr effect
                 self.lefe_data[pos] += imgs.astype(np.uint32)
 
+            # Set one single training data image
             self.train_data[self.count - 1] = imgs
 
             self.count += 1
             print('Captured {} situations from {} perspectives'.format(self.count, len(self.cams)))
 
             if self.count == dataset_size:
+                # Finally normalize images
                 self.lefe_data = (self.lefe_data / lefe_duration).astype(np.uint8)
 
+                # Randomize order
                 permut = np.random.permutation(dataset_size)
                 self.train_data = self.train_data[permut]
                 self.lefe_data = self.lefe_data[permut]
 
+                # Save datasets
                 now = datetime.now().time()
                 np.save('./vae/data/mvae_train_data_NEW_TODO_RENAME_{}.npy'.format(now), self.train_data)
                 np.save('./vae/data/mvae_lefe_data_NEW_TODO_RENAME_{}.npy'.format(now), self.lefe_data)

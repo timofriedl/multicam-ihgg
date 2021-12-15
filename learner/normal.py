@@ -2,6 +2,11 @@ import numpy as np
 
 from algorithm.replay_buffer import Trajectory
 
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+"""
+
 
 class NormalLearner:
     def __init__(self, args):

@@ -1,13 +1,13 @@
+import numpy as np
 import shutil
 import sys
 import time
-from argparse import ArgumentParser
-from pathlib import Path
-
-import numpy as np
 import torch
+from argparse import ArgumentParser
 from matplotlib import pyplot as plt
+from pathlib import Path
 from torch import Tensor, nn
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 sys.path.append("..")
@@ -19,8 +19,15 @@ images_path = "images"
 
 
 class Trainer:
+    """
+    Class for VAE training.
+    """
+
     @staticmethod
     def create_images_folder():
+        """
+        Creates the /images folder and clears the content
+        """
         path = Path(images_path)
         if path.exists():
             shutil.rmtree(images_path)
@@ -28,47 +35,61 @@ class Trainer:
 
     @staticmethod
     def save_img_examples(images: Tensor, name: str, epoch: int, it: int):
+        """
+        Saves a batch of images to one image file
+
+        :param images: the pytorch tensor of images with shape [batch_size, 3, height, width]
+        :param name: the name of the image file
+        :param epoch: the current epoch (used for the file name)
+        :param it: the current iteration (used for the file name)
+        """
         save_examples(images, f'{name}', img_format="png")
         save_examples(images, f'{name}_{epoch}_{it}')
 
     @staticmethod
-    def save_entanglement_img(entanglement_data: list, model: nn.Module, epoch: int, it: int):
-        fig = plt.figure()
+    def train_vae(dataset: DataLoader, model: nn.Module, model_name: str, goal_dataset: DataLoader = None,
+                  model_folder="./models/", alpha=10., beta=1., bar_log=False, log_every=10,
+                  load=True, save_images_every=1000, save_every=10, start_epoch=0, epochs=500):
+        """
+        Trains a given VAE
 
-        for images in entanglement_data:
-            mu, logvar = model.encode(images.to(device))
-            latent = model.sample(mu, logvar).detach().cpu()
-            plt.plot(latent[:, 0], latent[:, 1], 'o', markersize=3)
-
-        plt.xlabel('latent x')
-        plt.ylabel('latent y')
-        epoch_str = format(epoch, '05d')
-        it_str = format(it, '05d')
-        fig.savefig(f'{images_path}/entanglement_{epoch_str}_{it_str}.jpeg')
-        fig.savefig(f'{images_path}/entanglement.png')
-        plt.close(fig)
-
-    @staticmethod
-    def train_vae(dataset, model, model_name, goal_dataset=None, model_folder="./models/", alpha=10., beta=1.,
-                  bar_log=False,
-                  log_every=10,
-                  load=True, save_images_every=1000, save_every=10, start_epoch=0, epochs=500, entanglement_data=None):
+        :param dataset: the DataLoader that contains the training data
+        :param model: the VAE model to train
+        :param model_name: the name of the model to train, e.g. "mvae_model_fetch_reach_front_side_64_ec_0"
+        :param goal_dataset: a DataLoader that contains the expected output data or None if LEFE is not used
+        :param model_folder: the folder path where the models are stored
+        :param alpha: the VAE alpha hyperparameter
+        :param beta: the VAE beta hyperparameter
+        :param bar_log: True if a progress bar should be used as console output,
+                        False if default training information should be printed
+        :param log_every: the interval, how often the log should be written
+        :param load: True if training should be continued from latest existing model,
+                     False if previously trained models should be deleted
+        :param save_images_every: the interval, how often output images should be produced
+        :param save_every: the interval, how often the model should be saved
+        :param start_epoch: the number of the epoch to start
+        :param epochs: the total number of epochs to train
+        """
         if not bar_log:
             print(f'Device: {device}')
 
         if load:
             try:
+                # Load latest model
                 model = torch.load(f"{model_folder}{model_name}.pt")
             except FileNotFoundError:
                 Trainer.create_images_folder()
                 print("Found no model to load. Created new.")
 
+        # If LEFE is not used, use input data set as output data set
         if goal_dataset == None:
             goal_dataset = dataset
 
+        # Load model and create optimizer
         model = model.to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
+        # Iterate through epochs
         epoch_range = range(start_epoch + 1, epochs + 1)
         for epoch in tqdm(epoch_range) if bar_log else epoch_range:
             if not bar_log:
@@ -79,15 +100,20 @@ class Trainer:
             train_mse = 0
             train_kl = 0
 
+            # Iterate through dataset
             for i, (d, goal_batch) in enumerate(zip(dataset, goal_dataset)):
                 optimizer.zero_grad()
 
+                # Encode data
                 out, mu, logvar = model(d)
+
+                # Apply loss function
                 if model_name == 'bdvae_partial_reconstruction' or model_name == 'bdvae_full_reconstruction':
                     mse_loss, kl, loss = loss_fn_weighted(goal_batch, out, mu, logvar, alpha=alpha, beta=beta)
                 else:
                     mse_loss, kl, loss = loss_fn_weighted2(goal_batch, out, mu, logvar, alpha=alpha, beta=beta)
 
+                # Optimize
                 loss.backward(retain_graph=isinstance(model, InnerVae))
                 optimizer.step()
 
@@ -96,6 +122,7 @@ class Trainer:
                 train_kl += kl.item()
 
                 if i % log_every == 0 and i > 0:
+                    # Statistics
                     train_loss /= log_every
                     train_mse /= log_every
                     train_kl /= log_every
@@ -110,22 +137,27 @@ class Trainer:
                     train_kl = 0
 
                 if i % save_images_every == 0:
+                    # Output images
                     err_imgs = torch.abs(goal_batch.cpu() - out.cpu().detach())
                     Trainer.save_img_examples(d.cpu(), f'original', epoch, i)
                     Trainer.save_img_examples(out.cpu().detach(), f'reconstruction', epoch, i)
                     Trainer.save_img_examples(err_imgs, f'error', epoch, i)
 
-                    if entanglement_data is not None:
-                        Trainer.save_entanglement_img(entanglement_data, model, epoch, i)
-
             if epoch % save_every == 0:
+                # Save
                 torch.save(model, f"{model_folder}{model_name}.pt")
                 # torch.save(model, f"{model_folder}{model_name}_{epoch}.pt")
 
+        # Finally save again
         torch.save(model, f"{model_folder}{model_name}.pt")
 
 
 if __name__ == "__main__":
+    """
+    python trainer.py
+    
+    This code can be executed to perform VAE training. For usage see the following arguments
+    """
     ap = ArgumentParser()
     ap.add_argument("-d", "--dataset", required=True,
                     help="the path to the vae training data file, e.g. './data/x.npy'")
@@ -149,6 +181,7 @@ if __name__ == "__main__":
     latent_dim = args["latent_dim"]
     lefe = args["lefe"]
 
+    # Load dataset
     print("Loading dataset...")
     dataset = np.load(args["dataset"])[:, 0:num_cams]
     lefe_dataset = np.load(args["dataset"].replace("lefe_train_data", "lefe_data"))[:, 0:num_cams] if lefe else None
@@ -156,6 +189,7 @@ if __name__ == "__main__":
     width = dataset.shape[3]
     height = dataset.shape[2]
 
+    # Create MultiCamVae to train
     print("Building VAE...")
     from multicamvae import ConcatEncodeVae, EncodeConcatVae, EncodeConcatEncodeVae
 
@@ -179,21 +213,25 @@ if __name__ == "__main__":
 
     fac = 10
 
+    # Iterate through hyper batches to prevent too high memory usage
     for h in range(1) if limit == -1 else tqdm(range(dataset.shape[0] * fac // limit)):
         if limit == -1:
             data = dataset
             lefe_data = lefe_dataset
         else:
+            # Choose random part of training dataset
             permut = np.random.permutation(dataset.shape[0])
             dataset = dataset[permut]
-            if lefe:
+            if lefe:  # If LEFE is activated, also choose same random part of the output dataset
                 lefe_dataset = lefe_dataset[permut]
 
+            # Limit the dataset
             data = dataset[0:limit]
             lefe_data = None if not lefe else lefe_dataset[0:limit]
 
             ep = args["epochs"] // fac
 
+        # Train
         if args["skip_outer"]:
             vae.train(data, model_name=name, batch_size=bat, epochs=ep, lefe=lefe, lefe_dataset=lefe_data,
                       skip_outer=True)

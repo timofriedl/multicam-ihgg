@@ -4,6 +4,13 @@ import numpy as np
 
 from envs.utils import quaternion_to_euler_angle
 
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+
+Minor Modifications by Timo Friedl
+"""
+
 fetch_height = np.load('data/Fetch_Env/height.npy')
 
 
@@ -49,6 +56,7 @@ class Trajectory:
             if obj.shape[1] == 51:
                 height = height[:, :51]
 
+            # Hardcoded height extraction, don't do this at home
             if env_id == 'FetchPickAndPlace-v1':
                 if self.mvae_mode == 'ce':
                     obj = obj[:, :, :3]

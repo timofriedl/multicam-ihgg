@@ -10,6 +10,13 @@ from gym.envs.robotics import fetch_env
 from gym.envs.robotics.utils import capture_image_by_cam
 from vae.import_vae import import_vae, import_goal_set
 
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+
+Modifications for MultiCamVae by Timo Friedl
+"""
+
 # from vae.import_vae import goal_set_fetch_pick_1
 
 # edit envs/fetch/interval
@@ -32,12 +39,15 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, gym.utils.EzPickle):
         }
 
         self.args = args
+        # Load MultiCamVae + another MultiCamVae for the reach part
         self.mvae = import_vae(self.args.env, self.args.cams, self.args.mvae_mode, self.args.img_width,
                                self.args.img_height)
         self.reach_mvae = import_vae("FetchReach-v1", self.args.cams, self.args.mvae_mode, self.args.img_width,
                                      self.args.img_height)
+        # Load goal set
         self.goal_set = import_goal_set(self.args.env, self.args.cams, self.args.img_width, self.args.img_height)
-        self.arm_factor = 0.5  # influence of arm position to observation vector
+        # Limit influence of arm position to observation vector
+        self.arm_factor = 0.5
 
         fetch_env.FetchEnv.__init__(
             self, MODEL_XML_PATH, has_object=True, block_gripper=False, n_substeps=20,
@@ -58,6 +68,11 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, gym.utils.EzPickle):
     '''
 
     def _sample_goal(self):
+        """
+        Samples a random goal from the corresponding goal set
+
+        :return: a numpy array with shape [latent_dim] that contains the encoded representation of one goal image vector
+        """
         goal_imgs = self.goal_set[np.random.randint(self.goal_set.shape[0])]
         cat_img = np.concatenate(goal_imgs, axis=1)
         cat_img = vae.utils.image_to_tensor(cat_img)
@@ -68,6 +83,11 @@ class FetchPickAndPlaceEnv(fetch_env.FetchEnv, gym.utils.EzPickle):
         return np.concatenate((lat_puck, lat_arm))
 
     def _get_image(self):
+        """
+        Captures a vector of images
+
+        :return: a numpy array with shape [num_cams, height, width, 3] that contains the captured images
+        """
         images = np.empty([self.mvae.num_cams, self.mvae.height, self.mvae.width, 3])
         for c in range(self.mvae.num_cams):
             images[c] = capture_image_by_cam(self, self.args.cams[c], self.mvae.width, self.mvae.height)

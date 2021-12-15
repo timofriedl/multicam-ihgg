@@ -2,16 +2,43 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
+"""
+An implementation of CoordBDVAE that combines a Spatial Broadcast Decoder VAE with Coordinate Convolutional Layers.
+
+Original author: Aleksandar Aleksandrov
+Heavily modified by Timo Friedl
+"""
+
 
 class CoordConv(nn.Module):
+    """
+    A Coordinate Convolutional Layer that uses two orthogonal gradient channels to provide positional information.
+    """
+
+    # A cache for coordinate channels
     cc_cache = {}
 
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0,
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: int, stride=1, padding=0,
                  **kwargs):
+        """
+        Creates a new CoordConv layer.
+
+        :param in_channels: the number of input channels, e.g. 3 for a RGB image
+        :param out_channels: the number of output channels
+        :param kernel_size: the CNN kernel size
+        :param stride: the CNN stride
+        :param padding: the CNN padding
+        """
         super(CoordConv, self).__init__()
         self.conv = nn.Conv2d(in_channels + 2, out_channels, kernel_size, stride, padding, **kwargs)
 
     def forward(self, x: Tensor) -> Tensor:
+        """
+        Forwards a given batch of images through the CoordConv layer.
+
+        :param x: the batch of images to forward with shape [batch_size, 3, height, width]
+        :return: the output of this CoordConv layer
+        """
         batch_size, _, height, width = x.size()
 
         # Coordinate channels
@@ -22,14 +49,32 @@ class CoordConv(nn.Module):
         return x
 
     @staticmethod
-    def create_x_y_grids(width, height) -> (Tensor, Tensor):
+    def create_x_y_grids(width: int, height: int) -> (Tensor, Tensor):
+        """
+        Creates two matrices,
+        one with an horizontal gradient from 0.0 to 1.0, and
+        one with a vertical gradient from 0.0 to 1.0
+
+        :param width: the horizontal size of the output matrices
+        :param height: the vertical size of the output matrices
+        :return: the horizontal gradient matrix, and the vertical gradient matrix
+        """
         x = torch.linspace(-1, 1, width)
         y = torch.linspace(-1, 1, height)
         x_grid, y_grid = torch.meshgrid(x, y)
         return x_grid.transpose(0, 1), y_grid.transpose(0, 1)
 
     @staticmethod
-    def create_coordinate_channels(batch_size, width, height) -> (Tensor, Tensor):
+    def create_coordinate_channels(batch_size: int, width: int, height: int) -> (Tensor, Tensor):
+        """
+        Creates the coordinate channels for one batch of input images
+        using cached channels if possible.
+
+        :param batch_size: the number of input images
+        :param width: the horizontal size of the input images
+        :param height: the vertical size of the input images
+        :return: the 3D tensor of horizontal gradients, and the 3D tensor of vertical gradients
+        """
         cache_key = (batch_size, width, height)
         if cache_key in CoordConv.cc_cache:
             return CoordConv.cc_cache[cache_key]
@@ -43,11 +88,26 @@ class CoordConv(nn.Module):
 
     @staticmethod
     def empty_cache():
+        """
+        Deletes the gradient matrix cache
+        """
         CoordConv.cc_cache = {}
 
 
 class CoordBDVAE(nn.Module):
-    def __init__(self, width, height, latent_dim, channels=3):
+    """
+    A Spatial Broadcast Decoder VAE with Coordinate Convolutional Layers
+    """
+
+    def __init__(self, width: int, height: int, latent_dim: int, channels=3):
+        """
+        Creates a new CoordBDVAE.
+
+        :param width: the horizontal size of the input images
+        :param height: the vertical size of the input images
+        :param latent_dim: the number of latent dimensions
+        :param channels: the number of image channels
+        """
         super(CoordBDVAE, self).__init__()
 
         self.width = width
@@ -87,15 +147,34 @@ class CoordBDVAE(nn.Module):
         self.register_buffer('x_grid', x_grid.view((1, 1) + x_grid.shape))
         self.register_buffer('y_grid', y_grid.view((1, 1) + y_grid.shape))
 
-    def encode(self, x):
+    def encode(self, x: Tensor) -> Tensor:
+        """
+        Compresses a given batch of images to its encoded distributions
+
+        :param x: a pytorch tensor of images with shape [batch_size, 3, height, width] to compress
+        :return: a pytorch tensor of mu values, and a pytorch tensor of logvar values that represent the latent vectors
+        """
         return torch.chunk(self.enc_net(x), 2, dim=1)
 
-    def sample(self, mu, logvar):
+    def sample(self, mu, logvar) -> Tensor:
+        """
+        Samples a batch of latent vectors from its representing mu and logvar values
+
+        :param mu: a pytorch tensor of mu values from the encode function
+        :param logvar: a pytorch tensor of logvar values from the encode function
+        :return: a pytorch tensor of latent vectors with shape [batch_size, latent_dim]
+        """
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
 
-    def decode(self, z):
+    def decode(self, z) -> Tensor:
+        """
+        Decodes a given batch of latent vectors back to a reconstruction of the input images
+
+        :param z: the pytorch tensor of latent vectors with shape [batch_size, latent_dim]
+        :return: the pytorch tensor of reconstruction images with shape [batch_size, 3, height, width]
+        """
         batch_size = z.size(0)
 
         z = z.view(z.shape + (1, 1))
@@ -108,7 +187,14 @@ class CoordBDVAE(nn.Module):
 
         return x
 
-    def forward(self, x: Tensor):
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Encodes a given batch of input images to their latent representations
+        and decodes them back to a reconstruction of the original images.
+
+        :param x: the pytorch tensor of input images with shape [batch_size, 3, height, width]
+        :return: the pytorch tensor of reconstruction images with same shape
+        """
         mu, logvar = self.encode(x)
         z = self.sample(mu, logvar)
         x_rec = self.decode(z)

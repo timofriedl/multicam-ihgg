@@ -1,12 +1,17 @@
 import pickle
-import time
-
 import tensorflow as tf
+import time
+from common import get_args, experiment_setup
 from tqdm import tqdm
 
-from common import get_args, experiment_setup
-
 load = False
+
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+
+Minor modifications by Timo Friedl
+"""
 
 
 def train():

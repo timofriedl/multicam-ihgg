@@ -10,6 +10,13 @@ from gym.envs.robotics import fetch_env
 from gym.envs.robotics.utils import capture_image_by_cam
 from vae.import_vae import import_vae, import_goal_set
 
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+
+Modifications for MultiCamVae by Timo Friedl
+"""
+
 # edit envs/fetch/interval
 # edit fetch_env: sample_goal
 # edit fetch_env: get_obs
@@ -29,6 +36,7 @@ class FetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
         }
 
         self.args = args
+        # Load MultiCamVae and goal set
         self.mvae = import_vae(self.args.env, self.args.cams, self.args.mvae_mode, self.args.img_width,
                                self.args.img_height)
         self.goal_set = import_goal_set(self.args.env, self.args.cams, self.args.img_width, self.args.img_height)
@@ -41,6 +49,11 @@ class FetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
         utils.EzPickle.__init__(self)
 
     def _sample_goal(self) -> np.ndarray:
+        """
+        Samples a random goal from the corresponding goal set
+
+        :return: a numpy array with shape [latent_dim] that contains the encoded representation of one goal image vector
+        """
         goal_imgs = self.goal_set[np.random.randint(self.goal_set.shape[0])]
         cat_img = np.concatenate(goal_imgs, axis=1)
         cat_img = vae.utils.image_to_tensor(cat_img)
@@ -48,6 +61,11 @@ class FetchPushEnv(fetch_env.FetchEnv, utils.EzPickle):
         return vae.utils.tensor_to_np(self.mvae.encode(goal_imgs))
 
     def _get_image(self) -> np.ndarray:
+        """
+        Captures a vector of images
+
+        :return: a numpy array with shape [num_cams, height, width, 3] that contains the captured images
+        """
         images = np.empty([self.mvae.num_cams, self.mvae.height, self.mvae.width, 3])
         for c in range(self.mvae.num_cams):
             images[c] = capture_image_by_cam(self, self.args.cams[c], self.mvae.width, self.mvae.height)

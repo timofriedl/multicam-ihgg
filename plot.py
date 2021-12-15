@@ -1,14 +1,20 @@
 # DEPRECATED, use baselines.common.plot_util instead
 
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import seaborn as sns
 
 sns.set()
 import glob2
 import argparse
+
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+
+Minor Modifications by Timo Friedl
+"""
 
 
 def smooth_reward_curve(x, y):

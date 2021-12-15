@@ -1,15 +1,27 @@
+import numpy as np
 import os.path
 import re
 import sys
+from vae.multicamvae import MultiCamVae, ConcatEncodeVae, EncodeConcatVae, EncodeConcatEncodeVae
 
-import numpy as np
-
-from vae.multicamvae import ConcatEncodeVae, EncodeConcatVae, EncodeConcatEncodeVae
+"""
+Functions to load VAEs and goal sets from files.
+"""
 
 sys.path.append("./vae")
 
 
-def load_goal_set(env, cams, img_width, img_height):
+def load_goal_set(env: str, cams: list, img_width: int, img_height: int) -> np.ndarray:
+    """
+    Loads an existing goal set with the specified properties
+
+    :param env: the name of the environment, e.g. FetchReach-v1
+    :param cams: the list of camera names, e.g. ["front", "side"]
+    :param img_width: the horizontal image size
+    :param img_height: the vertical image size
+    :return: a numpy array with shape [goal_set_size, len(cams), height, width, 3] containing the goal set images
+             or None if the specified file does not exist
+    """
     env_parts = re.findall("[A-Z][^A-Z]*", env.split("-")[0])
     env_lower = "_".join(env_parts).lower()
     size = str(img_width) if img_width == img_height else "{}_{}".format(img_width, img_height)
@@ -21,7 +33,17 @@ def load_goal_set(env, cams, img_width, img_height):
         return None
 
 
-def load_multicam_vae(env, cams, mvae_mode, img_width, img_height):
+def load_multicam_vae(env: str, cams: list, mvae_mode: str, img_width: int, img_height: int) -> MultiCamVae:
+    """
+    Loads an existing Multi-Camera VAE with the specified properties
+
+    :param env: the name of the environment, e.g. FetchReach-v1
+    :param cams: the list of camera names, e.g. ["front", "side"]
+    :param mvae_mode: the compression mode of the Multi-Camera VAE, e.g. "ec" for EncodeConcatVAE
+    :param img_width: the horizontal image size
+    :param img_height: the vertical image size
+    :return: an instance of the corresponding MultiCamVAE or None if the file could not be found
+    """
     env_parts = re.findall("[A-Z][^A-Z]*", env.split("-")[0])
     env_lower = "_".join(env_parts).lower()
     size = str(img_width) if img_width == img_height else "{}_{}".format(img_width, img_height)
@@ -41,42 +63,23 @@ def load_multicam_vae(env, cams, mvae_mode, img_width, img_height):
         return None
 
 
-""" GOALS """
+# A cache for the goal sets
 goals = {}
 
-"""
-# fetch
-goal_set_fetch_reach = load_goal_set("fetch_reach")
-goal_set_fetch_push = load_goal_set("fetch_push")
-goal_set_fetch_pick_0 = load_goal_set("fetch_pick")
-goal_set_fetch_slide = load_goal_set("fetch_slide")
-
-# hand
-goal_set_reach = load_goal_set("hand_reach")
-goal_set_block = load_goal_set("hand_block")
-goal_set_egg = load_goal_set("hand_egg")
-goal_set_pen = load_goal_set("hand_pen")
-"""
-
-""" VAEs """
+# A cache for the vaes
 vaes = {}
 
-"""
-# fetch
-vae_fetch_reach = load_multicam_vae("fetch_reach")
-vae_fetch_push = load_multicam_vae("fetch_push")
-vae_fetch_pick_0 = load_multicam_vae("fetch_pick")
-vae_fetch_slide = load_multicam_vae("fetch_slide")
 
-# hand
-vae_hand_reach = load_multicam_vae("hand_reach")
-vae_block = load_multicam_vae("hand_block")
-vae_egg = load_multicam_vae("hand_egg")
-vae_pen = load_multicam_vae("hand_pen")
-"""
+def import_goal_set(env: str, cams: list, img_width: int, img_height: int) -> np.ndarray:
+    """
+    Loads an existing Multi-Camera VAE with the specified properties, or returns an already cached VAE
 
-
-def import_goal_set(env, cams, img_width, img_height):
+    :param env: the name of the environment, e.g. FetchReach-v1
+    :param cams: the list of camera names, e.g. ["front", "side"]
+    :param img_width: the horizontal image size
+    :param img_height: the vertical image size
+    :return: a numpy array with shape [goal_set_size, len(cams), height, width, 3] containing the goal set images
+    """
     key = (env, "_".join(cams), img_width, img_height)
     if key in goals:
         return goals[key]
@@ -86,7 +89,17 @@ def import_goal_set(env, cams, img_width, img_height):
     return goal
 
 
-def import_vae(env, cams, mvae_mode, img_width, img_height):
+def import_vae(env: str, cams: list, mvae_mode: str, img_width: int, img_height: int) -> MultiCamVae:
+    """
+    Loads an existing vae set with the specified properties, or returns an already cached goal set
+
+    :param env: the name of the environment, e.g. FetchReach-v1
+    :param cams: the list of camera names, e.g. ["front", "side"]
+    :param mvae_mode: the compression mode of the Multi-Camera VAE, e.g. "ec" for EncodeConcatVAE
+    :param img_width: the horizontal image size
+    :param img_height: the vertical image size
+    :return: an instance of the corresponding MultiCamVAE
+    """
     key = (env, "_".join(cams), mvae_mode, img_width, img_height)
     if key in vaes:
         return vaes[key]

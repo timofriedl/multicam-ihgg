@@ -7,6 +7,13 @@ from learner import create_learner, learner_collection
 from test import Tester
 from utils.os_utils import get_arg_parser, get_logger, str2bool
 
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+
+Minor modifications by Timo Friedl
+"""
+
 
 def get_args(clear_log):
     parser = get_arg_parser()

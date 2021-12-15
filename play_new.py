@@ -17,6 +17,13 @@ from vae.import_vae import import_vae
 res_y = 512
 video_path = './videos/{}_{}_{}_{}.avi'
 
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+
+Modifications by Timo Friedl
+"""
+
 
 class Player:
     def __init__(self, args):

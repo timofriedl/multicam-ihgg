@@ -4,9 +4,16 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import json
-import seaborn as sns; sns.set()
+import seaborn as sns;
+
+sns.set()
 import glob2
 import argparse
+
+"""
+Code by James Li
+https://github.com/hakrrr/I-HGG
+"""
 
 
 def smooth_reward_curve(x, y):
@@ -14,7 +21,7 @@ def smooth_reward_curve(x, y):
     k = halfwidth
     xsmoo = x
     ysmoo = np.convolve(y, np.ones(2 * k + 1), mode='same') / np.convolve(np.ones_like(y), np.ones(2 * k + 1),
-        mode='same')
+                                                                          mode='same')
     return xsmoo, ysmoo
 
 
@@ -53,7 +60,6 @@ def pad(xs, value=np.nan):
     return np.array(padded_xs)
 
 
-
 if __name__ == "__main__":
     # call plot.py to plot success stored in progress0.csv files
 
@@ -70,7 +76,8 @@ if __name__ == "__main__":
 
     # Load all data.
     data = {}
-    paths = [os.path.abspath(os.path.join(path, '')) for path in glob2.glob(os.path.join(args.dir, '**', 'progress0.csv'))]
+    paths = [os.path.abspath(os.path.join(path, '')) for path in
+             glob2.glob(os.path.join(args.dir, '**', 'progress0.csv'))]
     location = 1
     for curr_path in paths:
         if not os.path.isdir(curr_path):
@@ -93,7 +100,6 @@ if __name__ == "__main__":
             else:
                 raise Exception("Naming failed!")
 
-
         # Test:
         run = config
         print('Config / run: {} / {}'.format(config, run))
@@ -110,7 +116,7 @@ if __name__ == "__main__":
                 success_rate = np.array(results[key])
                 for i in range(len(success_rate)):
                     if success_rate[i] > 1000:
-                        success_rate[i] = success_rate[i-1]
+                        success_rate[i] = success_rate[i - 1]
                 iteration = (np.array(results['Episodes'])) / args.e_per_c
 
                 # Process and smooth data.
@@ -127,7 +133,6 @@ if __name__ == "__main__":
                 if run not in data[config]:
                     data[config][run] = []
                 data[config][run].append((x, y))
-
 
     # Plot data.
     print('exporting {}'.format(env_id))
